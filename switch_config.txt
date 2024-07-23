@@ -1,7 +1,6 @@
 ! Baseline configuration for the Catalyst 3500-series switch. Load this into the switch prior to configuring
 ! Cheesy Arena to connect to it. Default password is 1234Five.
 !
-!
 ! Last configuration change at 13:18:54 UTC Sat Sep 28 2019
 ! NVRAM config last updated at 13:18:57 UTC Sat Sep 28 2019
 !
