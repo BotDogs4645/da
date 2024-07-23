@@ -7,7 +7,6 @@ package field
 
 import (
 	"fmt"
-	"github.com/Team254/cheesy-arena-lite/websocket"
 	"net/url"
 	"reflect"
 	"sort"
@@ -15,6 +14,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/Team254/cheesy-arena-lite/websocket"
 )
 
 const (
@@ -32,6 +33,7 @@ const (
 	AudienceDisplay
 	BracketDisplay
 	FieldMonitorDisplay
+	LogoDisplay
 	QueueingDisplay
 	RankingsDisplay
 	TwitchStreamDisplay
@@ -44,6 +46,7 @@ var DisplayTypeNames = map[DisplayType]string{
 	AudienceDisplay:        "Audience",
 	BracketDisplay:         "Bracket",
 	FieldMonitorDisplay:    "Field Monitor",
+	LogoDisplay:            "Logo",
 	QueueingDisplay:        "Queueing",
 	RankingsDisplay:        "Rankings",
 	TwitchStreamDisplay:    "Twitch Stream",
@@ -56,6 +59,7 @@ var displayTypePaths = map[DisplayType]string{
 	AudienceDisplay:        "/displays/audience",
 	BracketDisplay:         "/displays/bracket",
 	FieldMonitorDisplay:    "/displays/field_monitor",
+	LogoDisplay:            "/displays/logo",
 	QueueingDisplay:        "/displays/queueing",
 	RankingsDisplay:        "/displays/rankings",
 	TwitchStreamDisplay:    "/displays/twitch",

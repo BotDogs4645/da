@@ -7,14 +7,15 @@ package web
 
 import (
 	"fmt"
-	"github.com/Team254/cheesy-arena-lite/field"
-	"github.com/Team254/cheesy-arena-lite/model"
-	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	"github.com/Team254/cheesy-arena-lite/field"
+	"github.com/Team254/cheesy-arena-lite/model"
+	"github.com/gorilla/mux"
 )
 
 const (
@@ -134,6 +135,8 @@ func (web *Web) newHandler() http.Handler {
 	router.HandleFunc("/displays/bracket/websocket", web.bracketDisplayWebsocketHandler).Methods("GET")
 	router.HandleFunc("/displays/field_monitor", web.fieldMonitorDisplayHandler).Methods("GET")
 	router.HandleFunc("/displays/field_monitor/websocket", web.fieldMonitorDisplayWebsocketHandler).Methods("GET")
+	router.HandleFunc("/displays/logo", web.logoDisplayHandler).Methods("GET")
+	router.HandleFunc("/displays/logo/websocket", web.logoDisplayWebsocketHandler).Methods("GET")
 	router.HandleFunc("/displays/queueing", web.queueingDisplayHandler).Methods("GET")
 	router.HandleFunc("/displays/queueing/websocket", web.queueingDisplayWebsocketHandler).Methods("GET")
 	router.HandleFunc("/displays/rankings", web.rankingsDisplayHandler).Methods("GET")
