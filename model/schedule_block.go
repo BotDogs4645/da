@@ -12,7 +12,7 @@ import (
 
 type ScheduleBlock struct {
 	Id              int `db:"id"`
-	MatchType       MatchType
+	MatchType       string
 	StartTime       time.Time
 	NumMatches      int
 	MatchSpacingSec int
@@ -22,7 +22,7 @@ func (database *Database) CreateScheduleBlock(block *ScheduleBlock) error {
 	return database.scheduleBlockTable.create(block)
 }
 
-func (database *Database) GetScheduleBlocksByMatchType(matchType MatchType) ([]ScheduleBlock, error) {
+func (database *Database) GetScheduleBlocksByMatchType(matchType string) ([]ScheduleBlock, error) {
 	scheduleBlocks, err := database.scheduleBlockTable.getAll()
 	if err != nil {
 		return nil, err
@@ -41,7 +41,7 @@ func (database *Database) GetScheduleBlocksByMatchType(matchType MatchType) ([]S
 	return matchingScheduleBlocks, nil
 }
 
-func (database *Database) DeleteScheduleBlocksByMatchType(matchType MatchType) error {
+func (database *Database) DeleteScheduleBlocksByMatchType(matchType string) error {
 	scheduleBlocks, err := database.GetScheduleBlocksByMatchType(matchType)
 	if err != nil {
 		return err

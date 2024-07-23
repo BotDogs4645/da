@@ -9,16 +9,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"math"
+	"github.com/Team254/cheesy-arena-lite/bracket"
+	"github.com/Team254/cheesy-arena-lite/game"
+	"github.com/Team254/cheesy-arena-lite/model"
+	"github.com/Team254/cheesy-arena-lite/tournament"
+	"github.com/gorilla/mux"
+	"github.com/jung-kurt/gofpdf"
 	"net/http"
 	"strconv"
-	"time"
-
-	"github.com/Team254/cheesy-arena/game"
-	"github.com/Team254/cheesy-arena/model"
-	"github.com/Team254/cheesy-arena/playoff"
-	"github.com/Team254/cheesy-arena/tournament"
-	"github.com/jung-kurt/gofpdf"
 )
 
 // Generates a CSV-formatted report of the qualification rankings.
@@ -52,8 +50,8 @@ func (web *Web) rankingsPdfReportHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	// The widths of the table columns in mm, stored here so that they can be referenced for each row.
-	colWidths := map[string]float64{"Rank": 13, "Team": 20, "RP": 20, "Coop": 20, "Match": 20, "Auto": 20, "Stage": 20,
-		"W-L-T": 22, "DQ": 20, "Played": 20}
+	colWidths := map[string]float64{"Rank": 13, "Team": 22, "RP": 23, "Auto": 23, "Endgame": 23, "Teleop": 23,
+		"W-L-T": 23, "DQ": 23, "Played": 23}
 	rowHeight := 6.5
 
 	pdf := gofpdf.New("P", "mm", "Letter", "font")
@@ -66,12 +64,10 @@ func (web *Web) rankingsPdfReportHandler(w http.ResponseWriter, r *http.Request)
 	pdf.CellFormat(colWidths["Rank"], rowHeight, "Rank", "1", 0, "C", true, 0, "")
 	pdf.CellFormat(colWidths["Team"], rowHeight, "Team", "1", 0, "C", true, 0, "")
 	pdf.CellFormat(colWidths["RP"], rowHeight, "RP", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(colWidths["Coop"], rowHeight, "Coop", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(colWidths["Match"], rowHeight, "Match", "1", 0, "C", true, 0, "")
 	pdf.CellFormat(colWidths["Auto"], rowHeight, "Auto", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(colWidths["Stage"], rowHeight, "Stage", "1", 0, "C", true, 0, "")
+	pdf.CellFormat(colWidths["Endgame"], rowHeight, "Endgame", "1", 0, "C", true, 0, "")
+	pdf.CellFormat(colWidths["Teleop"], rowHeight, "Teleop", "1", 0, "C", true, 0, "")
 	pdf.CellFormat(colWidths["W-L-T"], rowHeight, "W-L-T", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(colWidths["DQ"], rowHeight, "DQ", "1", 0, "C", true, 0, "")
 	pdf.CellFormat(colWidths["Played"], rowHeight, "Played", "1", 1, "C", true, 0, "")
 	for _, ranking := range rankings {
 		// Render ranking info row.
@@ -80,17 +76,13 @@ func (web *Web) rankingsPdfReportHandler(w http.ResponseWriter, r *http.Request)
 		pdf.SetFont("Arial", "", 10)
 		pdf.CellFormat(colWidths["Team"], rowHeight, strconv.Itoa(ranking.TeamId), "1", 0, "C", false, 0, "")
 		pdf.CellFormat(colWidths["RP"], rowHeight, strconv.Itoa(ranking.RankingPoints), "1", 0, "C", false, 0, "")
-		pdf.CellFormat(colWidths["Coop"], rowHeight, strconv.Itoa(ranking.CoopertitionPoints), "1", 0, "C", false, 0, "")
-		pdf.CellFormat(colWidths["Match"], rowHeight, strconv.Itoa(ranking.MatchPoints), "1", 0, "C", false, 0, "")
 		pdf.CellFormat(colWidths["Auto"], rowHeight, strconv.Itoa(ranking.AutoPoints), "1", 0, "C", false, 0, "")
-		pdf.CellFormat(colWidths["Stage"], rowHeight, strconv.Itoa(ranking.StagePoints), "1", 0, "C", false, 0, "")
+		pdf.CellFormat(colWidths["Endgame"], rowHeight, strconv.Itoa(ranking.EndgamePoints), "1", 0, "C", false, 0, "")
+		pdf.CellFormat(colWidths["Teleop"], rowHeight, strconv.Itoa(ranking.TeleopPoints), "1", 0, "C", false, 0, "")
 		record := fmt.Sprintf("%d-%d-%d", ranking.Wins, ranking.Losses, ranking.Ties)
 		pdf.CellFormat(colWidths["W-L-T"], rowHeight, record, "1", 0, "C", false, 0, "")
-		pdf.CellFormat(colWidths["DQ"], rowHeight, strconv.Itoa(ranking.Disqualifications), "1", 0, "C", false, 0, "")
 		pdf.CellFormat(colWidths["Played"], rowHeight, strconv.Itoa(ranking.Played), "1", 1, "C", false, 0, "")
 	}
-
-	addTimeGeneratedFooter(pdf)
 
 	// Write out the PDF file as the HTTP response.
 	w.Header().Set("Content-Type", "application/pdf")
@@ -236,8 +228,6 @@ func (web *Web) backupsPdfReportHandler(w http.ResponseWriter, r *http.Request) 
 		pdf.CellFormat(colWidths["RP"], rowHeight, strconv.Itoa(ranking.RankingPoints), "1", 1, "C", false, 0, "")
 	}
 
-	addTimeGeneratedFooter(pdf)
-
 	// Write out the PDF file as the HTTP response.
 	w.Header().Set("Content-Type", "application/pdf")
 	err = pdf.Output(w)
@@ -256,7 +246,7 @@ const (
 	cHeight     = 60
 	cSideMargin = 10
 	cTopMargin  = 10
-	cImgWidth   = 50
+	cImgWidth   = 25
 	cWOffset    = 5
 )
 
@@ -360,13 +350,8 @@ func drawPdfLogo(pdf gofpdf.Pdf, x float64, y float64, width float64) {
 
 // Generates a CSV-formatted report of the match schedule.
 func (web *Web) scheduleCsvReportHandler(w http.ResponseWriter, r *http.Request) {
-	matchType, err := model.MatchTypeFromString(r.PathValue("type"))
-	if err != nil {
-		handleWebErr(w, err)
-		return
-	}
-
-	matches, err := web.arena.Database.GetMatchesByType(matchType, false)
+	vars := mux.Vars(r)
+	matches, err := web.arena.Database.GetMatchesByType(vars["type"])
 	if err != nil {
 		handleWebErr(w, err)
 		return
@@ -388,23 +373,12 @@ func (web *Web) scheduleCsvReportHandler(w http.ResponseWriter, r *http.Request)
 
 // Generates a PDF-formatted report of the match schedule.
 func (web *Web) schedulePdfReportHandler(w http.ResponseWriter, r *http.Request) {
-	matchType, err := model.MatchTypeFromString(r.PathValue("type"))
+	vars := mux.Vars(r)
+	matches, err := web.arena.Database.GetMatchesByType(vars["type"])
 	if err != nil {
 		handleWebErr(w, err)
 		return
 	}
-
-	matches, err := web.arena.Database.GetMatchesByType(matchType, false)
-	if err != nil {
-		handleWebErr(w, err)
-		return
-	}
-	scheduledBreaks, err := web.arena.Database.GetScheduledBreaksByMatchType(matchType)
-	if err != nil {
-		handleWebErr(w, err)
-		return
-	}
-	breakIndex := 0
 	teams, err := web.arena.Database.GetAllTeams()
 	if err != nil {
 		handleWebErr(w, err)
@@ -416,7 +390,7 @@ func (web *Web) schedulePdfReportHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	// The widths of the table columns in mm, stored here so that they can be referenced for each row.
-	colWidths := map[string]float64{"Time": 35, "Match": 40, "Team": 20}
+	colWidths := map[string]float64{"Time": 35, "Type": 25, "Match": 15, "Team": 20}
 	rowHeight := 6.5
 
 	pdf := gofpdf.New("P", "mm", "Letter", "font")
@@ -427,6 +401,7 @@ func (web *Web) schedulePdfReportHandler(w http.ResponseWriter, r *http.Request)
 	pdf.SetFillColor(220, 220, 220)
 	pdf.CellFormat(195, rowHeight, "Match Schedule - "+web.arena.EventSettings.Name, "", 1, "C", false, 0, "")
 	pdf.CellFormat(colWidths["Time"], rowHeight, "Time", "1", 0, "C", true, 0, "")
+	pdf.CellFormat(colWidths["Type"], rowHeight, "Type", "1", 0, "C", true, 0, "")
 	pdf.CellFormat(colWidths["Match"], rowHeight, "Match", "1", 0, "C", true, 0, "")
 	pdf.CellFormat(colWidths["Team"], rowHeight, "Red 1", "1", 0, "C", true, 0, "")
 	pdf.CellFormat(colWidths["Team"], rowHeight, "Red 2", "1", 0, "C", true, 0, "")
@@ -436,16 +411,6 @@ func (web *Web) schedulePdfReportHandler(w http.ResponseWriter, r *http.Request)
 	pdf.CellFormat(colWidths["Team"], rowHeight, "Blue 3", "1", 1, "C", true, 0, "")
 	pdf.SetFont("Arial", "", 10)
 	for _, match := range matches {
-		// Render break if there is one before this match.
-		if breakIndex < len(scheduledBreaks) && scheduledBreaks[breakIndex].TypeOrderBefore == match.TypeOrder {
-			scheduledBreak := scheduledBreaks[breakIndex]
-			formattedTime := scheduledBreak.Time.Local().Format("Mon 1/02 03:04 PM")
-			description := fmt.Sprintf("%s (%d minutes)", scheduledBreak.Description, scheduledBreak.DurationSec/60)
-			pdf.CellFormat(colWidths["Time"], rowHeight, formattedTime, "1", 0, "C", false, 0, "")
-			pdf.CellFormat(colWidths["Match"]+6*colWidths["Team"], rowHeight, description, "1", 1, "C", false, 0, "")
-			breakIndex++
-		}
-
 		height := rowHeight
 		borderStr := "1"
 		alignStr := "CM"
@@ -459,6 +424,9 @@ func (web *Web) schedulePdfReportHandler(w http.ResponseWriter, r *http.Request)
 			surrogate = true
 		}
 
+		// Capitalize match types.
+		matchType := match.CapitalizedType()
+
 		formatTeam := func(teamId int) string {
 			if teamId == 0 {
 				return ""
@@ -470,7 +438,8 @@ func (web *Web) schedulePdfReportHandler(w http.ResponseWriter, r *http.Request)
 		// Render match info row.
 		pdf.CellFormat(colWidths["Time"], height, match.Time.Local().Format("Mon 1/02 03:04 PM"), borderStr, 0,
 			alignStr, false, 0, "")
-		pdf.CellFormat(colWidths["Match"], height, match.LongName, borderStr, 0, alignStr, false, 0, "")
+		pdf.CellFormat(colWidths["Type"], height, matchType, borderStr, 0, alignStr, false, 0, "")
+		pdf.CellFormat(colWidths["Match"], height, match.DisplayName, borderStr, 0, alignStr, false, 0, "")
 		pdf.CellFormat(colWidths["Team"], height, formatTeam(match.Red1), borderStr, 0, alignStr, false, 0, "")
 		pdf.CellFormat(colWidths["Team"], height, formatTeam(match.Red2), borderStr, 0, alignStr, false, 0, "")
 		pdf.CellFormat(colWidths["Team"], height, formatTeam(match.Red3), borderStr, 0, alignStr, false, 0, "")
@@ -482,6 +451,7 @@ func (web *Web) schedulePdfReportHandler(w http.ResponseWriter, r *http.Request)
 			height := 4.0
 			pdf.SetFont("Arial", "", 8)
 			pdf.CellFormat(colWidths["Time"], height, "", "LBR", 0, "C", false, 0, "")
+			pdf.CellFormat(colWidths["Type"], height, "", "LBR", 0, "C", false, 0, "")
 			pdf.CellFormat(colWidths["Match"], height, "", "LBR", 0, "C", false, 0, "")
 			pdf.CellFormat(colWidths["Team"], height, surrogateText(match.Red1IsSurrogate), "LBR", 0, "CT", false, 0,
 				"")
@@ -499,12 +469,10 @@ func (web *Web) schedulePdfReportHandler(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	if matchType != model.Playoff {
+	if vars["type"] != "elimination" {
 		// Render some summary info at the bottom.
 		pdf.CellFormat(195, 10, fmt.Sprintf("Matches Per Team: %d", matchesPerTeam), "", 1, "L", false, 0, "")
 	}
-
-	addTimeGeneratedFooter(pdf)
 
 	// Write out the PDF file as the HTTP response.
 	w.Header().Set("Content-Type", "application/pdf")
@@ -555,7 +523,6 @@ func (web *Web) teamsPdfReportHandler(w http.ResponseWriter, r *http.Request) {
 		colWidths = map[string]float64{"Id": 12, "Name": 80, "Location": 80, "RookieYear": 23}
 	}
 	rowHeight := 6.5
-	lineHeight := 5.0
 
 	pdf := gofpdf.New("P", "mm", "Letter", "font")
 	pdf.AddPage()
@@ -576,34 +543,21 @@ func (web *Web) teamsPdfReportHandler(w http.ResponseWriter, r *http.Request) {
 	pdf.SetFont("Arial", "", 10)
 	for _, team := range teams {
 		// Render team info row.
-		numNicknameRows := len(pdf.SplitLines([]byte(team.Nickname), colWidths["Name"]))
+		pdf.CellFormat(colWidths["Id"], rowHeight, strconv.Itoa(team.Id), "1", 0, "L", false, 0, "")
+		pdf.CellFormat(colWidths["Name"], rowHeight, team.Nickname, "1", 0, "L", false, 0, "")
 		location := fmt.Sprintf("%s, %s, %s", team.City, team.StateProv, team.Country)
-		numLocationRows := len(pdf.SplitLines([]byte(location), colWidths["Location"]))
-		teamRowHeight := rowHeight
-		numRows := int(math.Max(float64(numNicknameRows), float64(numLocationRows)))
-		if numRows > 1 {
-			teamRowHeight = lineHeight * float64(numRows)
-		}
-		pdf.CellFormat(colWidths["Id"], teamRowHeight, strconv.Itoa(team.Id), "1", 0, "L", false, 0, "")
-		drawMultiLineCell(pdf, colWidths["Name"], teamRowHeight, lineHeight, team.Nickname, "L", numNicknameRows)
-		drawMultiLineCell(pdf, colWidths["Location"], teamRowHeight, lineHeight, location, "L", numLocationRows)
+		pdf.CellFormat(colWidths["Location"], rowHeight, location, "1", 0, "L", false, 0, "")
 		if showHasConnected {
-			pdf.CellFormat(
-				colWidths["RookieYear"], teamRowHeight, strconv.Itoa(team.RookieYear), "1", 0, "L", false, 0, "",
-			)
+			pdf.CellFormat(colWidths["RookieYear"], rowHeight, strconv.Itoa(team.RookieYear), "1", 0, "L", false, 0, "")
 			var hasConnected string
 			if team.HasConnected {
 				hasConnected = "Yes"
 			}
-			pdf.CellFormat(colWidths["HasConnected"], teamRowHeight, hasConnected, "1", 1, "L", false, 0, "")
+			pdf.CellFormat(colWidths["HasConnected"], rowHeight, hasConnected, "1", 1, "L", false, 0, "")
 		} else {
-			pdf.CellFormat(
-				colWidths["RookieYear"], teamRowHeight, strconv.Itoa(team.RookieYear), "1", 1, "L", false, 0, "",
-			)
+			pdf.CellFormat(colWidths["RookieYear"], rowHeight, strconv.Itoa(team.RookieYear), "1", 1, "L", false, 0, "")
 		}
 	}
-
-	addTimeGeneratedFooter(pdf)
 
 	// Write out the PDF file as the HTTP response.
 	w.Header().Set("Content-Type", "application/pdf")
@@ -627,7 +581,7 @@ func (web *Web) wpaKeysCsvReportHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.Header().Set("Content-Type", "text/csv")
-	w.Header().Set("Content-Disposition", "attachment; filename=keys.csv")
+	w.Header().Set("Content-Disposition", "attachment; filename=wpa_keys.csv")
 	for _, team := range teams {
 		_, err := w.Write([]byte(fmt.Sprintf("%d,%s\r\n", team.Id, team.WpaKey)))
 		if err != nil {
@@ -645,35 +599,26 @@ func (web *Web) alliancesPdfReportHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Traverse the playoff tournament to register the furthest level that the alliance has achieved.
+	// Traverse the bracket to register the furthest level that the alliance has achieved.
 	allianceStatuses := make(map[int]string)
-	if web.arena.PlayoffTournament.IsComplete() {
-		allianceStatuses[web.arena.PlayoffTournament.WinningAllianceId()] = "Winner"
-		allianceStatuses[web.arena.PlayoffTournament.FinalistAllianceId()] = "Finalist"
+	if web.arena.PlayoffBracket.IsComplete() {
+		allianceStatuses[web.arena.PlayoffBracket.Winner()] = "Winner\n "
+		allianceStatuses[web.arena.PlayoffBracket.Finalist()] = "Finalist\n "
 	}
-	err = web.arena.PlayoffTournament.Traverse(func(matchGroup playoff.MatchGroup) error {
-		matchup, ok := matchGroup.(*playoff.Matchup)
-		if !ok {
-			return nil
-		}
+	web.arena.PlayoffBracket.ReverseRoundOrderTraversal(func(matchup *bracket.Matchup) {
 		if matchup.IsComplete() {
-			if _, ok := allianceStatuses[matchup.LosingAllianceId()]; !ok {
-				allianceStatuses[matchup.LosingAllianceId()] = fmt.Sprintf("Eliminated in\n%s", matchup.Id())
+			if _, ok := allianceStatuses[matchup.Loser()]; !ok {
+				allianceStatuses[matchup.Loser()] = fmt.Sprintf("Eliminated in\n%s", matchup.LongDisplayName())
 			}
 		} else {
 			if matchup.RedAllianceId > 0 {
-				allianceStatuses[matchup.RedAllianceId] = fmt.Sprintf("Playing in\n%s", matchup.Id())
+				allianceStatuses[matchup.RedAllianceId] = fmt.Sprintf("Playing in\n%s", matchup.LongDisplayName())
 			}
 			if matchup.BlueAllianceId > 0 {
-				allianceStatuses[matchup.BlueAllianceId] = fmt.Sprintf("Playing in\n%s", matchup.Id())
+				allianceStatuses[matchup.BlueAllianceId] = fmt.Sprintf("Playing in\n%s", matchup.LongDisplayName())
 			}
 		}
-		return nil
 	})
-	if err != nil {
-		handleWebErr(w, err)
-		return
-	}
 
 	teams, err := web.arena.Database.GetAllTeams()
 	if err != nil {
@@ -688,7 +633,6 @@ func (web *Web) alliancesPdfReportHandler(w http.ResponseWriter, r *http.Request
 	// The widths of the table columns in mm, stored here so that they can be referenced for each row.
 	colWidths := map[string]float64{"Alliance": 23, "Id": 12, "Name": 80, "Location": 80}
 	rowHeight := 6.5
-	lineHeight := 5.0
 
 	pdf := gofpdf.New("P", "mm", "Letter", "font")
 	pdf.AddPage()
@@ -702,50 +646,27 @@ func (web *Web) alliancesPdfReportHandler(w http.ResponseWriter, r *http.Request
 	pdf.CellFormat(colWidths["Name"], rowHeight, "Name", "1", 0, "C", true, 0, "")
 	pdf.CellFormat(colWidths["Location"], rowHeight, "Location", "1", 1, "C", true, 0, "")
 	pdf.SetFont("Arial", "", 10)
-	startX := pdf.GetX()
+	xStart := pdf.GetX()
 	for _, alliance := range alliances {
-		var allianceHeight float64
-		for _, teamId := range alliance.TeamIds {
-			team := teamsMap[teamId]
-			numNicknameRows := len(pdf.SplitLines([]byte(team.Nickname), colWidths["Name"]))
-			location := fmt.Sprintf("%s, %s, %s", team.City, team.StateProv, team.Country)
-			numLocationRows := len(pdf.SplitLines([]byte(location), colWidths["Location"]))
-			teamRowHeight := rowHeight
-			numRows := int(math.Max(float64(numNicknameRows), float64(numLocationRows)))
-			if numRows > 1 {
-				teamRowHeight = lineHeight * float64(numRows)
-			}
-			allianceHeight += teamRowHeight
-		}
-		numAllianceStatusesRows := len(pdf.SplitLines([]byte(allianceStatuses[alliance.Id]), colWidths["Alliance"]))
-		drawMultiLineCell(
-			pdf, colWidths["Alliance"],
-			allianceHeight,
-			lineHeight,
-			fmt.Sprintf("Alliance %d\n%s", alliance.Id, allianceStatuses[alliance.Id]),
+		yStart := pdf.GetY()
+		pdf.MultiCell(
+			colWidths["Alliance"],
+			rowHeight*float64(len(alliance.TeamIds))/5,
+			fmt.Sprintf(" \n%d\n%s\n ", alliance.Id, allianceStatuses[alliance.Id]),
+			"1",
 			"C",
-			numAllianceStatusesRows+1,
+			false,
 		)
+		pdf.SetY(yStart)
 		for _, teamId := range alliance.TeamIds {
+			pdf.SetX(xStart + colWidths["Alliance"])
 			team := teamsMap[teamId]
-			numNicknameRows := len(pdf.SplitLines([]byte(team.Nickname), colWidths["Name"]))
+			pdf.CellFormat(colWidths["Id"], rowHeight, strconv.Itoa(team.Id), "1", 0, "L", false, 0, "")
+			pdf.CellFormat(colWidths["Name"], rowHeight, team.Nickname, "1", 0, "L", false, 0, "")
 			location := fmt.Sprintf("%s, %s, %s", team.City, team.StateProv, team.Country)
-			numLocationRows := len(pdf.SplitLines([]byte(location), colWidths["Location"]))
-			teamRowHeight := rowHeight
-			numRows := int(math.Max(float64(numNicknameRows), float64(numLocationRows)))
-			if numRows > 1 {
-				teamRowHeight = lineHeight * float64(numRows)
-			}
-
-			pdf.CellFormat(colWidths["Id"], teamRowHeight, strconv.Itoa(team.Id), "1", 0, "L", false, 0, "")
-			drawMultiLineCell(pdf, colWidths["Name"], teamRowHeight, lineHeight, team.Nickname, "L", numNicknameRows)
-			drawMultiLineCell(pdf, colWidths["Location"], teamRowHeight, lineHeight, location, "L", numLocationRows)
-			pdf.SetXY(startX+colWidths["Alliance"], pdf.GetY()+teamRowHeight)
+			pdf.CellFormat(colWidths["Location"], rowHeight, location, "1", 1, "L", false, 0, "")
 		}
-		pdf.SetX(startX)
 	}
-
-	addTimeGeneratedFooter(pdf)
 
 	// Write out the PDF file as the HTTP response.
 	w.Header().Set("Content-Type", "application/pdf")
@@ -760,7 +681,7 @@ func (web *Web) alliancesPdfReportHandler(w http.ResponseWriter, r *http.Request
 // suitable Go library for doing so appears to exist).
 func (web *Web) bracketPdfReportHandler(w http.ResponseWriter, r *http.Request) {
 	buffer := new(bytes.Buffer)
-	err := web.generateBracketSvg(buffer, nil)
+	err := web.generateBracketSvg(buffer, nil, false)
 	if err != nil {
 		handleWebErr(w, err)
 		return
@@ -785,149 +706,4 @@ func surrogateText(isSurrogate bool) string {
 	} else {
 		return ""
 	}
-}
-
-// Generates a PDF-formatted report of the match cycle times.
-func (web *Web) cyclePdfReportHandler(w http.ResponseWriter, r *http.Request) {
-	matchType, err := model.MatchTypeFromString(r.PathValue("type"))
-	if err != nil {
-		handleWebErr(w, err)
-		return
-	}
-
-	matches, err := web.arena.Database.GetMatchesByType(matchType, false)
-	if err != nil {
-		handleWebErr(w, err)
-		return
-	}
-
-	// The widths of the table columns in mm, stored here so that they can be referenced for each row.
-	colWidths := map[string]float64{"Time": 30, "Time2": 22, "Match": 15, "Diff": 20}
-	rowHeight := 6.5
-
-	pdf := gofpdf.New("P", "mm", "Letter", "font")
-	pdf.AddPage()
-
-	// Render table header row.
-	pdf.SetFont("Arial", "B", 10)
-	pdf.SetFillColor(220, 220, 220)
-	pdf.CellFormat(
-		195, rowHeight, matchType.String()+" Cycle Time - "+web.arena.EventSettings.Name, "", 1, "C", false, 0, "",
-	)
-	pdf.CellFormat(colWidths["Match"], rowHeight, "Match", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(colWidths["Time"], rowHeight, "Scheduled Time", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(colWidths["Time2"], rowHeight, "Ready", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(colWidths["Time2"], rowHeight, "Started", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(colWidths["Time2"], rowHeight, "Committed", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(colWidths["Diff"], rowHeight, "Cycle Time", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(colWidths["Diff"], rowHeight, "Delta Time", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(colWidths["Diff"], rowHeight, "MC Time", "1", 0, "C", true, 0, "")
-	pdf.CellFormat(colWidths["Diff"], rowHeight, "Ref Time", "1", 1, "C", true, 0, "")
-	pdf.SetFont("Arial", "", 10)
-	var lastMatchStart time.Time
-	for _, match := range matches {
-		height := rowHeight
-		borderStr := "1"
-		alignStr := "CM"
-		fieldReady := ""
-		startedAt := ""
-		scoreCommitted := ""
-		refTime := ""
-		mcTime := ""
-		deltaTime := ""
-		cycleTime := ""
-
-		if !match.FieldReadyAt.IsZero() {
-			fieldReady = match.FieldReadyAt.Local().Format("03:04 PM")
-		}
-		if !match.StartedAt.IsZero() {
-			startedAt = match.StartedAt.Local().Format("03:04 PM")
-		}
-		if !match.ScoreCommittedAt.IsZero() {
-			scoreCommitted = match.ScoreCommittedAt.Local().Format("03:04 PM")
-		}
-
-		if !match.StartedAt.IsZero() && !match.ScoreCommittedAt.IsZero() {
-			matchEndTime := match.StartedAt.Add(game.GetDurationToTeleopEnd())
-			tempRefTime := match.ScoreCommittedAt.Sub(matchEndTime)
-			refTime = tempRefTime.Truncate(time.Second).String()
-		}
-		if !match.StartedAt.IsZero() && !match.FieldReadyAt.IsZero() {
-			tempMcTime := match.StartedAt.Sub(match.FieldReadyAt)
-			mcTime = tempMcTime.Truncate(time.Second).String()
-		}
-		if !match.StartedAt.IsZero() {
-			tempDeltaTime := match.StartedAt.Sub(match.Time)
-			deltaTime = tempDeltaTime.Truncate(time.Second).String()
-		}
-		if !lastMatchStart.IsZero() && !match.StartedAt.IsZero() {
-			tempCycleTime := match.StartedAt.Sub(lastMatchStart)
-			cycleTime = tempCycleTime.Truncate(time.Second).String()
-		}
-		lastMatchStart = match.StartedAt
-
-		// Render match info row.
-		pdf.CellFormat(colWidths["Match"], height, match.ShortName, borderStr, 0, alignStr, false, 0, "")
-		pdf.CellFormat(colWidths["Time"], height, match.Time.Local().Format("1/02 03:04 PM"), borderStr, 0,
-			alignStr, false, 0, "")
-		pdf.CellFormat(colWidths["Time2"], height, fieldReady, borderStr, 0, alignStr, false, 0, "")
-		pdf.CellFormat(colWidths["Time2"], height, startedAt, borderStr, 0, alignStr, false, 0, "")
-		pdf.CellFormat(colWidths["Time2"], height, scoreCommitted, borderStr, 0, alignStr, false, 0, "")
-		pdf.CellFormat(colWidths["Diff"], height, cycleTime, borderStr, 0, alignStr, false, 0, "")
-		pdf.CellFormat(colWidths["Diff"], height, deltaTime, borderStr, 0, alignStr, false, 0, "")
-		pdf.CellFormat(colWidths["Diff"], height, mcTime, borderStr, 0, alignStr, false, 0, "")
-		pdf.CellFormat(colWidths["Diff"], height, refTime, borderStr, 1, alignStr, false, 0, "")
-	}
-
-	addTimeGeneratedFooter(pdf)
-
-	// Write out the PDF file as the HTTP response.
-	w.Header().Set("Content-Type", "application/pdf")
-	err = pdf.Output(w)
-	if err != nil {
-		handleWebErr(w, err)
-		return
-	}
-}
-
-// Generates a CSV-formatted report of the FTA notes.
-func (web *Web) ftaCsvReportHandler(w http.ResponseWriter, r *http.Request) {
-	teams, err := web.arena.Database.GetAllTeams()
-	if err != nil {
-		handleWebErr(w, err)
-		return
-	}
-
-	// Don't set the content type as "text/csv", as that will trigger an automatic download in the browser.
-	w.Header().Set("Content-Type", "text/plain")
-	template, err := web.parseFiles("templates/fta.csv")
-	if err != nil {
-		handleWebErr(w, err)
-		return
-	}
-	err = template.ExecuteTemplate(w, "fta.csv", teams)
-	if err != nil {
-		handleWebErr(w, err)
-		return
-	}
-}
-
-func addTimeGeneratedFooter(pdf *gofpdf.Fpdf) {
-	footerText := fmt.Sprintf(
-		"Report generated at %s on %s", time.Now().Format("3:04:05 PM"), time.Now().Format("Mon Jan 2 2006"),
-	)
-	pdf.SetFont("Arial", "", 10)
-	pdf.CellFormat(0, 10, footerText, "", 1, "L", false, 0, "")
-}
-
-// Draws a bordered cell with multiple lines of text vertically centered.
-func drawMultiLineCell(pdf *gofpdf.Fpdf, width, height, lineHeight float64, text, align string, numTextLines int) {
-	startX, startY := pdf.GetXY()
-	pdf.Rect(startX, startY, width, height, "")
-
-	gapY := (height - (lineHeight * float64(numTextLines))) / 2
-	pdf.SetXY(startX, startY+gapY)
-	pdf.MultiCell(width, lineHeight, text, "", align, false)
-
-	pdf.SetXY(startX+width, startY)
 }

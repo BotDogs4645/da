@@ -14,12 +14,10 @@ type Team struct {
 	City            string
 	StateProv       string
 	Country         string
-	SchoolName      string
 	RookieYear      int
 	RobotName       string
 	Accomplishments string
 	WpaKey          string
-	YellowCard      bool
 	HasConnected    bool
 	FtaNotes        string
 }

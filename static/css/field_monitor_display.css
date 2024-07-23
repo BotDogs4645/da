@@ -1,4 +1,4 @@
-﻿/*
+/*
   Copyright 2018 Team 254. All Rights Reserved.
   Author: pat@patfairbank.com (Patrick Fairbank)
 */
@@ -11,7 +11,6 @@ body {
   height: 100%;
   font-family: FuturaLTBold;
   color: #fff;
-  background-color: #333;
 }
 .center {
   display: flex;
@@ -19,25 +18,7 @@ body {
   justify-content: center;
 }
 .position-row {
-  height: 29%;
-}
-.position-row[data-ds="true"] {
   height: 31%;
-}
-.position-row[data-ds="true"][data-preMatch="false"] {
-  display: none;
-}
-#matchStatusRow {
-  height: 6%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background-color: #333;
-  font-size: 1.5vw;
-  text-transform: uppercase;
-}
-#matchStatusRow[data-ds="true"][data-preMatch="false"]  {
-  display: none;
 }
 #eventStatusRow {
   height: 7%;
@@ -48,14 +29,8 @@ body {
   font-size: 1.5vw;
   text-transform: uppercase;
 }
-#eventStatusRow[data-ds="true"] {
-  display: none;
-}
-#eventStatusRow[data-fta="false"] {
-  display: none;
-}
 .left-position, .right-position {
-  width: 6%;
+  width: 8%;
   height: 100%;
   font-size: 6vw;
 }
@@ -65,11 +40,8 @@ body {
 .left-position[data-reversed=true], .right-position[data-reversed=false] {
   background-color: #2080ff;
 }
-.right-position[data-ds="true"] {
-  display: none;
-} 
 .team {
-  width: 44%;
+  width: 42%;
   height: 100%;
   background-color: #333;
   display: flex;
@@ -78,30 +50,27 @@ body {
 .team-id {
   width: 100%;
   height: 80%;
-  font-size: 12vw;
+  font-size: 13vw;
 }
 .team-id[data-fta="true"] {
   height: 40%;
   font-size: 6vw;
 }
 .team-id[data-status=no-link], .team-notes[data-status=no-link] {
-  background-color: #AAA;
+  background-color: #963;
 }
 .team-id[data-status=ds-linked], .team-notes[data-status=ds-linked]  {
-  background-color: #EDAB33;
-}
-.team-id[data-status=robot-linked], .team-notes[data-status=robot-linked]  {
-  background-color: #00ff00;
+  background-color: #ff0;
   color: #333;
 }
-.team-id[data-status=rio-linked], .team-notes[data-status=rio-linked]  {
-  background-color: #00cc00;
+.team-id[data-status=robot-linked], .team-notes[data-status=robot-linked]  {
+  background-color: #0a3;
 }
 .team-id[data-status=radio-linked], .team-notes[data-status=radio-linked]  {
-  background-color: #AA3377;
+  background-color: #ff00ff;
 }
 .team-id[data-status=wrong-station], .team-notes[data-status=wrong-station]  {
-  background-color: #4477AA;
+  background-color: #246f92;
 }
 .team-box-row {
   display: flex;
@@ -109,23 +78,19 @@ body {
   width: 100%;
 }
 .team-box {
-  width: calc(100%/6);
+  width: 20%;
   height: 100%;
-  font-size: 1.5vw;
+  font-size: 2.5vw;
   background-color: #333;
 }
 .team-box[data-status-ok="true"] {
-  background-color: #00ff00;
-  color: #333;
+  background-color: #0a3;
 }
 .team-box[data-status-ok="false"] {
   background-color: #f44;
 }
 .team-box i {
   margin-right: 0.5vw;
-}
-.team-left[data-ds="true"] {
-  width: 100%;
 }
 .team-notes[data-fta="true"] {
   height: 40%;
@@ -137,16 +102,10 @@ body {
 .team-notes[data-fta="false"] {
   display: none;
 }
-.team-notes[data-ds="true"] {
-  display: none;
-}
 .team-notes div {
   width: 96%;
   height: 96%;
   white-space: pre;
-}
-.team-right[data-ds="true"] {
-  display: none;
 }
 textarea {
   width: 96%;
@@ -154,13 +113,3 @@ textarea {
   background-color: #ccc;
   color: #000;
 }
-.left-score[data-fta="false"], .right-score[data-fta="false"] {
-  display: none;
-}
-.left-score[data-reversed=false], .right-score[data-reversed=true] {
-  color: #f44;
-}
-.left-score[data-reversed=true], .right-score[data-reversed=false] {
-  color: #2080ff;
-}
-

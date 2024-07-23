@@ -1,14 +1,14 @@
 // Copyright 2014 Team 254. All Rights Reserved.
 // Author: pat@patfairbank.com (Patrick Fairbank)
 
-// Go version 1.22 or newer is required.
-//go:build go1.22
+// Go version 1.20 or newer is required due to how it initializes the PRNG.
+//go:build go1.20
 
 package main
 
 import (
-	"github.com/Team254/cheesy-arena/field"
-	"github.com/Team254/cheesy-arena/web"
+	"github.com/Team254/cheesy-arena-lite/field"
+	"github.com/Team254/cheesy-arena-lite/web"
 	"log"
 )
 

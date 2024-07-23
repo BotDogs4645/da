@@ -4,8 +4,7 @@
 package field
 
 import (
-	"github.com/Team254/cheesy-arena/model"
-	"github.com/Team254/cheesy-arena/network"
+	"github.com/Team254/cheesy-arena-lite/network"
 	"github.com/stretchr/testify/assert"
 	"net"
 	"testing"
@@ -76,41 +75,39 @@ func TestEncodeControlPacket(t *testing.T) {
 	data = dsConn.encodeControlPacket(arena)
 	assert.Equal(t, byte(4), data[3])
 
-	dsConn.EStop = true
+	dsConn.Estop = true
 	data = dsConn.encodeControlPacket(arena)
 	assert.Equal(t, byte(132), data[3])
 
-	dsConn.AStop = true
-	data = dsConn.encodeControlPacket(arena)
-	assert.Equal(t, byte(196), data[3])
-
 	// Check different match types.
-	arena.CurrentMatch.Type = model.Practice
+	arena.CurrentMatch.Type = "practice"
 	data = dsConn.encodeControlPacket(arena)
 	assert.Equal(t, byte(1), data[6])
-	arena.CurrentMatch.Type = model.Qualification
+	arena.CurrentMatch.Type = "qualification"
 	data = dsConn.encodeControlPacket(arena)
 	assert.Equal(t, byte(2), data[6])
-	arena.CurrentMatch.Type = model.Playoff
+	arena.CurrentMatch.Type = "elimination"
 	data = dsConn.encodeControlPacket(arena)
 	assert.Equal(t, byte(3), data[6])
 
 	// Check match numbers.
-	arena.CurrentMatch.Type = model.Practice
-	arena.CurrentMatch.TypeOrder = 42
+	arena.CurrentMatch.Type = "practice"
+	arena.CurrentMatch.DisplayName = "42"
 	data = dsConn.encodeControlPacket(arena)
 	assert.Equal(t, byte(0), data[7])
 	assert.Equal(t, byte(42), data[8])
-	arena.CurrentMatch.Type = model.Qualification
-	arena.CurrentMatch.TypeOrder = 258
+	arena.CurrentMatch.Type = "qualification"
+	arena.CurrentMatch.DisplayName = "258"
 	data = dsConn.encodeControlPacket(arena)
 	assert.Equal(t, byte(1), data[7])
 	assert.Equal(t, byte(2), data[8])
-	arena.CurrentMatch.Type = model.Playoff
-	arena.CurrentMatch.TypeOrder = 13
+	arena.CurrentMatch.Type = "elimination"
+	arena.CurrentMatch.ElimRound = 8
+	arena.CurrentMatch.ElimGroup = 5
+	arena.CurrentMatch.ElimInstance = 2
 	data = dsConn.encodeControlPacket(arena)
-	assert.Equal(t, byte(0), data[7])
-	assert.Equal(t, byte(13), data[8])
+	assert.Equal(t, byte(3), data[7])
+	assert.Equal(t, byte(84), data[8])
 
 	// Check the countdown at different points during the match.
 	arena.MatchState = AutoPeriod

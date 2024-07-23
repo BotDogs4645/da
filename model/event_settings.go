@@ -5,54 +5,40 @@
 
 package model
 
-import "github.com/Team254/cheesy-arena/game"
-
-type PlayoffType int
-
-const (
-	DoubleEliminationPlayoff PlayoffType = iota
-	SingleEliminationPlayoff
-)
+import "github.com/Team254/cheesy-arena-lite/game"
 
 type EventSettings struct {
-	Id                              int `db:"id"`
-	Name                            string
-	PlayoffType                     PlayoffType
-	NumPlayoffAlliances             int
-	SelectionRound2Order            string
-	SelectionRound3Order            string
-	SelectionShowUnpickedTeams      bool
-	TbaDownloadEnabled              bool
-	TbaPublishingEnabled            bool
-	TbaEventCode                    string
-	TbaSecretId                     string
-	TbaSecret                       string
-	NexusEnabled                    bool
-	NetworkSecurityEnabled          bool
-	ApAddress                       string
-	ApPassword                      string
-	ApChannel                       int
-	SwitchAddress                   string
-	SwitchPassword                  string
-	PlcAddress                      string
-	AdminPassword                   string
-	TeamSignRed1Address             string
-	TeamSignRed2Address             string
-	TeamSignRed3Address             string
-	TeamSignRedTimerAddress         string
-	TeamSignBlue1Address            string
-	TeamSignBlue2Address            string
-	TeamSignBlue3Address            string
-	TeamSignBlueTimerAddress        string
-	WarmupDurationSec               int
-	AutoDurationSec                 int
-	PauseDurationSec                int
-	TeleopDurationSec               int
-	WarningRemainingDurationSec     int
-	MelodyBonusThresholdWithoutCoop int
-	MelodyBonusThresholdWithCoop    int
-	AmplificationNoteLimit          int
-	AmplificationDurationSec        int
+	Id                          int `db:"id"`
+	Name                        string
+	ElimType                    string
+	NumElimAlliances            int
+	SelectionRound2Order        string
+	SelectionRound3Order        string
+	TBADownloadEnabled          bool
+	TbaPublishingEnabled        bool
+	TbaEventCode                string
+	TbaSecretId                 string
+	TbaSecret                   string
+	NetworkSecurityEnabled      bool
+	ApAddress                   string
+	ApUsername                  string
+	ApPassword                  string
+	ApTeamChannel               int
+	ApAdminChannel              int
+	ApAdminWpaKey               string
+	Ap2Address                  string
+	Ap2Username                 string
+	Ap2Password                 string
+	Ap2TeamChannel              int
+	SwitchAddress               string
+	SwitchPassword              string
+	PlcAddress                  string
+	AdminPassword               string
+	WarmupDurationSec           int
+	AutoDurationSec             int
+	PauseDurationSec            int
+	TeleopDurationSec           int
+	WarningRemainingDurationSec int
 }
 
 func (database *Database) GetEventSettings() (*EventSettings, error) {
@@ -66,23 +52,21 @@ func (database *Database) GetEventSettings() (*EventSettings, error) {
 
 	// Database record doesn't exist yet; create it now.
 	eventSettings := EventSettings{
-		Name:                            "Untitled Event",
-		PlayoffType:                     DoubleEliminationPlayoff,
-		NumPlayoffAlliances:             8,
-		SelectionRound2Order:            "L",
-		SelectionRound3Order:            "",
-		SelectionShowUnpickedTeams:      false,
-		TbaDownloadEnabled:              false,
-		ApChannel:                       36,
-		WarmupDurationSec:               game.MatchTiming.WarmupDurationSec,
-		AutoDurationSec:                 game.MatchTiming.AutoDurationSec,
-		PauseDurationSec:                game.MatchTiming.PauseDurationSec,
-		TeleopDurationSec:               game.MatchTiming.TeleopDurationSec,
-		WarningRemainingDurationSec:     game.MatchTiming.WarningRemainingDurationSec,
-		MelodyBonusThresholdWithoutCoop: game.MelodyBonusThresholdWithoutCoop,
-		MelodyBonusThresholdWithCoop:    game.MelodyBonusThresholdWithCoop,
-		AmplificationNoteLimit:          game.AmplificationNoteLimit,
-		AmplificationDurationSec:        game.AmplificationDurationSec,
+		Name:                        "Untitled Event",
+		ElimType:                    "single",
+		NumElimAlliances:            8,
+		SelectionRound2Order:        "L",
+		SelectionRound3Order:        "",
+		TBADownloadEnabled:          true,
+		ApTeamChannel:               157,
+		ApAdminChannel:              0,
+		ApAdminWpaKey:               "1234Five",
+		Ap2TeamChannel:              0,
+		WarmupDurationSec:           game.MatchTiming.WarmupDurationSec,
+		AutoDurationSec:             game.MatchTiming.AutoDurationSec,
+		PauseDurationSec:            game.MatchTiming.PauseDurationSec,
+		TeleopDurationSec:           game.MatchTiming.TeleopDurationSec,
+		WarningRemainingDurationSec: game.MatchTiming.WarningRemainingDurationSec,
 	}
 
 	if err := database.eventSettingsTable.create(&eventSettings); err != nil {

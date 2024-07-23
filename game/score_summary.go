@@ -6,67 +6,24 @@
 package game
 
 type ScoreSummary struct {
-	LeavePoints               int
-	AutoPoints                int
-	AmpPoints                 int
-	SpeakerPoints             int
-	StagePoints               int
-	MatchPoints               int
-	FoulPoints                int
-	Score                     int
-	CoopertitionCriteriaMet   bool
-	CoopertitionBonus         bool
-	NumNotes                  int
-	NumNotesGoal              int
-	MelodyBonusRankingPoint   bool
-	EnsembleBonusRankingPoint bool
-	BonusRankingPoints        int
-	NumOpponentTechFouls      int
-
-	// Fields only needed for TBA.
-	ParkPoints      int
-	OnStagePoints   int
-	HarmonyPoints   int
-	SpotlightPoints int
-	TrapPoints      int
+	AutoPoints    int
+	TeleopPoints  int
+	EndgamePoints int
+	Score         int
 }
 
-type MatchStatus int
+type MatchStatus string
 
 const (
-	MatchScheduled MatchStatus = iota
-	MatchHidden
-	RedWonMatch
-	BlueWonMatch
-	TieMatch
+	RedWonMatch    MatchStatus = "R"
+	BlueWonMatch   MatchStatus = "B"
+	TieMatch       MatchStatus = "T"
+	MatchNotPlayed MatchStatus = ""
 )
 
-func (t MatchStatus) Get() MatchStatus {
-	return t
-}
-
 // Determines the winner of the match given the score summaries for both alliances.
-func DetermineMatchStatus(redScoreSummary, blueScoreSummary *ScoreSummary, applyPlayoffTiebreakers bool) MatchStatus {
-	if status := comparePoints(redScoreSummary.Score, blueScoreSummary.Score); status != TieMatch {
-		return status
-	}
-
-	if applyPlayoffTiebreakers {
-		// Check scoring breakdowns to resolve playoff ties.
-		if status := comparePoints(
-			redScoreSummary.NumOpponentTechFouls, blueScoreSummary.NumOpponentTechFouls,
-		); status != TieMatch {
-			return status
-		}
-		if status := comparePoints(redScoreSummary.AutoPoints, blueScoreSummary.AutoPoints); status != TieMatch {
-			return status
-		}
-		if status := comparePoints(redScoreSummary.StagePoints, blueScoreSummary.StagePoints); status != TieMatch {
-			return status
-		}
-	}
-
-	return TieMatch
+func DetermineMatchStatus(redScoreSummary, blueScoreSummary *ScoreSummary) MatchStatus {
+	return comparePoints(redScoreSummary.Score, blueScoreSummary.Score)
 }
 
 // Helper method to compare the red and blue alliance point totals and return the appropriate MatchStatus.

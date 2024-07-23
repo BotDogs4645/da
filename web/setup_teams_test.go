@@ -5,7 +5,7 @@ package web
 
 import (
 	"fmt"
-	"github.com/Team254/cheesy-arena/model"
+	"github.com/Team254/cheesy-arena-lite/model"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -24,7 +24,7 @@ func TestSetupTeams(t *testing.T) {
 	// Mock the URL to download team info from.
 	teamInfoBody := `{
 		"website": "http://www.team254.com",
-		"name": "NASA Ames Research Center/PG&E&Bellarmine College Preparatory",
+		"name": "NASA Ames Research Center",
 		"city": "San Jose",
 		"rookie_year": 1999,
 		"state_prov": "CA",
@@ -90,8 +90,6 @@ func TestSetupTeams(t *testing.T) {
 	assert.Contains(t, recorder.Body.String(), "2 teams")
 	assert.Contains(t, recorder.Body.String(), "The Cheesy Poofs")
 	assert.Contains(t, recorder.Body.String(), "1114")
-	team, _ := web.arena.Database.GetTeamById(254)
-	assert.Equal(t, "Bellarmine College Preparatory", team.SchoolName)
 
 	// Add another team.
 	recorder = web.postHttpResponse("/setup/teams", "teamNumbers=33")
@@ -133,7 +131,7 @@ func TestSetupTeamsDisallowModification(t *testing.T) {
 	web := setupTestWeb(t)
 
 	web.arena.Database.CreateTeam(&model.Team{Id: 254, Nickname: "The Cheesy Poofs"})
-	web.arena.Database.CreateMatch(&model.Match{Type: model.Qualification})
+	web.arena.Database.CreateMatch(&model.Match{Type: "qualification"})
 
 	// Disallow adding teams.
 	recorder := web.postHttpResponse("/setup/teams", "teamNumbers=33")
@@ -208,11 +206,13 @@ func TestSetupTeamsWpaKeys(t *testing.T) {
 	assert.Contains(t, recorder.Body.String(), "WPA key must be between 8 and 63 characters")
 }
 
-func TestSetupTeamsProgress(t *testing.T) {
+func TestSetupTeamsPublish(t *testing.T) {
 	web := setupTestWeb(t)
-	progressPercentage = 25.4
 
-	recorder := web.getHttpResponse("/setup/teams/progress")
-	assert.Equal(t, 200, recorder.Code)
-	assert.Equal(t, "25", recorder.Body.String())
+	web.arena.TbaClient.BaseUrl = "fakeurl"
+	web.arena.EventSettings.TbaPublishingEnabled = true
+
+	recorder := web.postHttpResponse("/setup/teams/publish", "")
+	assert.Equal(t, 500, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), "Failed to publish teams")
 }

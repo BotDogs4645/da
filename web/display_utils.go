@@ -7,7 +7,7 @@ package web
 
 import (
 	"fmt"
-	"github.com/Team254/cheesy-arena/field"
+	"github.com/Team254/cheesy-arena-lite/field"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -32,9 +32,7 @@ func (web *Web) enforceDisplayConfiguration(w http.ResponseWriter, r *http.Reque
 	// Get display-specific fields from the query parameters.
 	if defaults != nil {
 		for key, defaultValue := range defaults {
-			if r.URL.Query().Has(key) {
-				configuration[key] = r.URL.Query().Get(key)
-			} else {
+			if configuration[key] = r.URL.Query().Get(key); configuration[key] == "" {
 				configuration[key] = defaultValue
 				allPresent = false
 			}

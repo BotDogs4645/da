@@ -8,7 +8,7 @@ package tournament
 import (
 	"encoding/csv"
 	"fmt"
-	"github.com/Team254/cheesy-arena/model"
+	"github.com/Team254/cheesy-arena-lite/model"
 	"math"
 	"math/rand"
 	"os"
@@ -23,9 +23,8 @@ const (
 )
 
 // Creates a random schedule for the given parameters and returns it as a list of matches.
-func BuildRandomSchedule(
-	teams []model.Team, scheduleBlocks []model.ScheduleBlock, matchType model.MatchType,
-) ([]model.Match, error) {
+func BuildRandomSchedule(teams []model.Team, scheduleBlocks []model.ScheduleBlock,
+	matchType string) ([]model.Match, error) {
 	// Load the anonymized, pre-randomized match schedule for the given number of teams and matches per team.
 	numTeams := len(teams)
 	numMatches := countMatches(scheduleBlocks)
@@ -65,18 +64,7 @@ func BuildRandomSchedule(
 	matches := make([]model.Match, numMatches)
 	for i, anonMatch := range anonSchedule {
 		matches[i].Type = matchType
-		matches[i].TypeOrder = i + 1
-		if matchType == model.Practice {
-			matches[i].ShortName = fmt.Sprintf("P%d", i+1)
-			matches[i].LongName = fmt.Sprintf("Practice %d", i+1)
-			matches[i].TbaMatchKey.CompLevel = "p"
-		} else if matchType == model.Qualification {
-			matches[i].ShortName = fmt.Sprintf("Q%d", i+1)
-			matches[i].LongName = fmt.Sprintf("Qualification %d", i+1)
-			matches[i].TbaMatchKey.CompLevel = "qm"
-		} else {
-			return nil, fmt.Errorf("invalid match type %q", matchType)
-		}
+		matches[i].DisplayName = strconv.Itoa(i + 1)
 		matches[i].Red1 = teams[teamShuffle[anonMatch[0]-1]].Id
 		matches[i].Red1IsSurrogate = anonMatch[1] == 1
 		matches[i].Red2 = teams[teamShuffle[anonMatch[2]-1]].Id
@@ -89,7 +77,6 @@ func BuildRandomSchedule(
 		matches[i].Blue2IsSurrogate = anonMatch[9] == 1
 		matches[i].Blue3 = teams[teamShuffle[anonMatch[10]-1]].Id
 		matches[i].Blue3IsSurrogate = anonMatch[11] == 1
-		matches[i].TbaMatchKey.MatchNumber = i + 1
 	}
 
 	// Fill in the match times.

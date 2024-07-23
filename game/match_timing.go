@@ -7,21 +7,15 @@ package game
 
 import "time"
 
-const (
-	speakerAutoGracePeriodSec      = 3
-	SpeakerTeleopGracePeriodSec    = 5
-	speakerAmplifiedGracePeriodSec = 3
-	coopTeleopWindowSec            = 45
-)
-
 var MatchTiming = struct {
-	WarmupDurationSec           int
-	AutoDurationSec             int
-	PauseDurationSec            int
-	TeleopDurationSec           int
-	WarningRemainingDurationSec int
-	TimeoutDurationSec          int
-}{0, 15, 3, 135, 20, 0}
+	WarmupDurationSec                  int
+	AutoDurationSec                    int
+	PauseDurationSec                   int
+	TeleopDurationSec                  int
+	WarningRemainingDurationSec        int
+	TimeoutDurationSec                 int
+	TimeoutWarningRemainingDurationSec int
+}{0, 15, 2, 135, 30, 0, 60}
 
 func GetDurationToAutoEnd() time.Duration {
 	return time.Duration(MatchTiming.WarmupDurationSec+MatchTiming.AutoDurationSec) * time.Second

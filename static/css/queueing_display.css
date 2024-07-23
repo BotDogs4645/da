@@ -16,6 +16,9 @@ body {
   background: -webkit-linear-gradient(top, #003375 1%, #3C679D 100%); /* Chrome10+,Safari5.1+ */
   background-repeat: no-repeat;
 }
+h1 {
+  font-size: 40px;
+}
 #header {
   padding: 10px 0px;
   font-size: 40px;
@@ -23,7 +26,7 @@ body {
   color: #fff;
   text-transform: uppercase;
 }
-.card {
+.well {
   background-color: #ccc;
   border: 1px solid #333;
   padding: 10px;
@@ -52,8 +55,6 @@ body {
   line-height: 48px;
 }
 #earlyLateMessage {
-  position: absolute;
-  bottom: 40px;
   font-size: 25px;
   font-family: "FuturaLTBold";
   color: #fff;
@@ -62,12 +63,9 @@ body {
 }
 .alliance-container {
   display: flex;
-  height: 144px;
+  height: 192px;
   justify-content: space-between;
   align-items: center;
-}
-.alliance-tall {
-  height: 192px;
 }
 .alliance-number {
   width: 40px;

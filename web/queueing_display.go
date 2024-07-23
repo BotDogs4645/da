@@ -6,16 +6,16 @@
 package web
 
 import (
-	"github.com/Team254/cheesy-arena/field"
-	"github.com/Team254/cheesy-arena/model"
-	"github.com/Team254/cheesy-arena/websocket"
+	"github.com/Team254/cheesy-arena-lite/field"
+	"github.com/Team254/cheesy-arena-lite/model"
+	"github.com/Team254/cheesy-arena-lite/websocket"
 	"net/http"
 	"time"
 )
 
 const (
-	numNonPlayoffMatchesToShow = 5
-	numPlayoffMatchesToShow    = 4
+	numNonElimMatchesToShow = 5
+	numElimMatchesToShow    = 4
 )
 
 // Renders the queueing display that shows upcoming matches and timing information.
@@ -24,35 +24,15 @@ func (web *Web) queueingDisplayHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	template, err := web.parseFiles("templates/queueing_display.html")
+	matches, err := web.arena.Database.GetMatchesByType(web.arena.CurrentMatch.Type)
 	if err != nil {
 		handleWebErr(w, err)
 		return
 	}
 
-	data := struct {
-		*model.EventSettings
-	}{
-		web.arena.EventSettings,
-	}
-	err = template.ExecuteTemplate(w, "queueing_display.html", data)
-	if err != nil {
-		handleWebErr(w, err)
-		return
-	}
-}
-
-// Renders a partial template containing the list of matches.
-func (web *Web) queueingDisplayMatchLoadHandler(w http.ResponseWriter, r *http.Request) {
-	matches, err := web.arena.Database.GetMatchesByType(web.arena.CurrentMatch.Type, false)
-	if err != nil {
-		handleWebErr(w, err)
-		return
-	}
-
-	numMatchesToShow := numNonPlayoffMatchesToShow
-	if web.arena.CurrentMatch.Type == model.Playoff {
-		numMatchesToShow = numPlayoffMatchesToShow
+	numMatchesToShow := numNonElimMatchesToShow
+	if web.arena.CurrentMatch.Type == "elimination" {
+		numMatchesToShow = numElimMatchesToShow
 	}
 
 	var upcomingMatches []model.Match
@@ -62,7 +42,7 @@ func (web *Web) queueingDisplayMatchLoadHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 	for i, match := range matches {
-		if match.IsComplete() || match.TypeOrder < web.arena.CurrentMatch.TypeOrder {
+		if match.IsComplete() {
 			continue
 		}
 		upcomingMatches = append(upcomingMatches, match)
@@ -84,22 +64,26 @@ func (web *Web) queueingDisplayMatchLoadHandler(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	template, err := web.parseFiles("templates/queueing_display_match_load.html")
+	template, err := web.parseFiles("templates/queueing_display.html")
 	if err != nil {
 		handleWebErr(w, err)
 		return
 	}
 
 	data := struct {
+		*model.EventSettings
+		MatchTypePrefix   string
 		Matches           []model.Match
 		RedOffFieldTeams  [][]int
 		BlueOffFieldTeams [][]int
 	}{
+		web.arena.EventSettings,
+		web.arena.CurrentMatch.TypePrefix(),
 		upcomingMatches,
 		redOffFieldTeamsByMatch,
 		blueOffFieldTeamsByMatch,
 	}
-	err = template.ExecuteTemplate(w, "queueing_display_match_load.html", data)
+	err = template.ExecuteTemplate(w, "queueing_display.html", data)
 	if err != nil {
 		handleWebErr(w, err)
 		return

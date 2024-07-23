@@ -7,8 +7,8 @@ package web
 
 import (
 	"fmt"
-	"github.com/Team254/cheesy-arena/model"
-	"github.com/Team254/cheesy-arena/websocket"
+	"github.com/Team254/cheesy-arena-lite/model"
+	"github.com/Team254/cheesy-arena-lite/websocket"
 	"github.com/mitchellh/mapstructure"
 	"io"
 	"log"
@@ -151,9 +151,7 @@ func (web *Web) saveLowerThird(lowerThird *model.LowerThird) error {
 		lowerThird.DisplayOrder = web.arena.Database.GetNextLowerThirdDisplayOrder()
 		err = web.arena.Database.CreateLowerThird(lowerThird)
 	} else {
-		oldLowerThird.TopText = lowerThird.TopText
-		oldLowerThird.BottomText = lowerThird.BottomText
-		err = web.arena.Database.UpdateLowerThird(oldLowerThird)
+		err = web.arena.Database.UpdateLowerThird(lowerThird)
 	}
 	if err != nil {
 		return err

@@ -6,16 +6,14 @@
 package tournament
 
 import (
-	"fmt"
-	"github.com/Team254/cheesy-arena/game"
-	"github.com/Team254/cheesy-arena/model"
+	"github.com/Team254/cheesy-arena-lite/game"
+	"github.com/Team254/cheesy-arena-lite/model"
 	"sort"
-	"strconv"
 )
 
 // Determines the rankings from the stored match results, and saves them to the database.
 func CalculateRankings(database *model.Database, preservePreviousRank bool) (game.Rankings, error) {
-	matches, err := database.GetMatchesByType(model.Qualification, false)
+	matches, err := database.GetMatchesByType("qualification")
 	if err != nil {
 		return nil, err
 	}
@@ -77,60 +75,6 @@ func CalculateRankings(database *model.Database, preservePreviousRank bool) (gam
 	return sortedRankings, nil
 }
 
-// Checks all the match results for yellow and red cards, and updates the team model accordingly.
-func CalculateTeamCards(database *model.Database, matchType model.MatchType) error {
-	teams, err := database.GetAllTeams()
-	if err != nil {
-		return err
-	}
-	teamsMap := make(map[string]model.Team)
-	for _, team := range teams {
-		team.YellowCard = false
-		teamsMap[strconv.Itoa(team.Id)] = team
-	}
-
-	matches, err := database.GetMatchesByType(matchType, false)
-	if err != nil {
-		return err
-	}
-	for _, match := range matches {
-		if !match.IsComplete() {
-			continue
-		}
-		matchResult, err := database.GetMatchResultForMatch(match.Id)
-		if err != nil {
-			return err
-		}
-		if matchResult == nil {
-			return fmt.Errorf("found no match result for match %d", match.Id)
-		}
-
-		// Mark the team as having a yellow card if they got either a yellow or red in a previous match.
-		for teamId, card := range matchResult.RedCards {
-			if team, ok := teamsMap[teamId]; ok && (card == "red" || card == "yellow") {
-				team.YellowCard = true
-				teamsMap[teamId] = team
-			}
-		}
-		for teamId, card := range matchResult.BlueCards {
-			if team, ok := teamsMap[teamId]; ok && (card == "red" || card == "yellow") {
-				team.YellowCard = true
-				teamsMap[teamId] = team
-			}
-		}
-	}
-
-	// Save the teams to the database.
-	for _, team := range teamsMap {
-		err = database.UpdateTeam(&team)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 // Incrementally accounts for the given match result in the set of rankings that are being built.
 func addMatchResultToRankings(
 	rankings map[int]*game.Ranking, teamId int, matchResult *model.MatchResult, isRed bool,
@@ -141,22 +85,10 @@ func addMatchResultToRankings(
 		rankings[teamId] = ranking
 	}
 
-	// Determine whether the team was disqualified.
-	var cards map[string]string
 	if isRed {
-		cards = matchResult.RedCards
+		ranking.AddScoreSummary(matchResult.RedScoreSummary(), matchResult.BlueScoreSummary())
 	} else {
-		cards = matchResult.BlueCards
-	}
-	disqualified := false
-	if card, ok := cards[strconv.Itoa(teamId)]; ok && (card == "red" || card == "dq") {
-		disqualified = true
-	}
-
-	if isRed {
-		ranking.AddScoreSummary(matchResult.RedScoreSummary(), matchResult.BlueScoreSummary(), disqualified)
-	} else {
-		ranking.AddScoreSummary(matchResult.BlueScoreSummary(), matchResult.RedScoreSummary(), disqualified)
+		ranking.AddScoreSummary(matchResult.BlueScoreSummary(), matchResult.RedScoreSummary())
 	}
 }
 

@@ -27,8 +27,10 @@ var addBlock = function(startTime, numMatches, matchSpacingSec) {
   var matchSpacingMinSec = moment(matchSpacingSec * 1000).format("m:ss");
   var block = blockTemplate({blockNumber: lastBlockNumber, matchSpacingMinSec: matchSpacingMinSec});
   $("#blockContainer").append(block);
-  newDateTimePicker("startTimePicker" + lastBlockNumber, startTime.toDate());
-  newDateTimePicker("endTimePicker" + lastBlockNumber, endTime.toDate());
+  $("#startTimePicker" + lastBlockNumber).datetimepicker({useSeconds: true}).
+      data("DateTimePicker").setDate(startTime);
+  $("#endTimePicker" + lastBlockNumber).datetimepicker({useSeconds: true}).
+      data("DateTimePicker").setDate(endTime);
   updateBlock(lastBlockNumber);
 };
 

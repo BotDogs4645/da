@@ -1,18 +1,33 @@
-# Driver Authentication & FMS
+Cheesy Arena Lite [![Build Status](https://github.com/Team254/cheesy-arena-lite/actions/workflows/test.yml/badge.svg)](https://github.com/Team254/cheesy-arena-lite/actions)
+============
+A game-agnostic field management system that just works.
 
-*name pending*
+For the game-specific version, see [Cheesy Arena](https://github.com/Team254/cheesy-arena).
 
-The goal of this project is to create helper software to:
+## License
+Teams may use Cheesy Arena Lite freely for practice, scrimmages, and off-season events. See [LICENSE](LICENSE) for more details.
 
-    - Grant each Romi a 10.0.100.xxx IP for communication
-    - Perform FMS-style actions on a Romi robot:
-        - Enable/disable
-        - Network stats
-    - Generate matches
-    - Handle scoring ingress
+## Installing
+**From a pre-built release**
 
-The idea is to use a managed switch to assign VLANs to each Romi to prevent interference. This project is designed around a Cisco Catalyst 3500 series switch, but any managed switch will work. The Catalyst switch was chosen because you can pick one up for under $50 with PoE.
+Download the [latest release](https://github.com/Team254/cheesy-arena-lite/releases). Pre-built packages are available for Linux, macOS (x64 and M1), and Windows.
 
-## For Open source
+On recent versions of macOS, you may be prevented from running an app from an unidentified developer; see [these instructions](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unidentified-developer-mh40616/mac) on how to bypass the warning.
 
-We hope to merge our updated frontend with upstream once it is finished. 
+**From source**
+
+1. Download [Go](https://golang.org/dl/) (version 1.16 or later recommended)
+1. Clone this GitHub repository to a location of your choice
+1. Navigate to the repository's directory in the terminal
+1. Compile the code with `go build`
+1. Run the `cheesy-arena-lite` or `cheesy-arena-lite.exe` binary
+1. Navigate to http://localhost:8080 in your browser (Google Chrome recommended)
+
+**IP address configuration**
+
+When running Cheesy Arena Lite on a playing field with robots, set the IP address of the computer running Cheesy Arena Lite to 10.0.100.5. By a convention baked into the FRC Driver Station software, driver stations will broadcast their presence on the network to this hardcoded address so that the FMS does not need to discover them by some other method.
+
+When running Cheesy Arena Lite without robots for testing or development, any IP address can be used.
+
+## Further reading
+Please see the game-specific [Cheesy Arena](https://github.com/Team254/cheesy-arena) README for technical details and acknowledgements.
