@@ -4,10 +4,11 @@
 package web
 
 import (
-	"github.com/Team254/cheesy-arena-lite/model"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/BotDogs4645/da/model"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSetupSchedule(t *testing.T) {

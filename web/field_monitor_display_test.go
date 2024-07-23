@@ -4,11 +4,12 @@
 package web
 
 import (
-	"github.com/Team254/cheesy-arena-lite/model"
-	"github.com/Team254/cheesy-arena-lite/websocket"
+	"testing"
+
+	"github.com/BotDogs4645/da/model"
+	"github.com/BotDogs4645/da/websocket"
 	gorillawebsocket "github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestFieldMonitorDisplay(t *testing.T) {

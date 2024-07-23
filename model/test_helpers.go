@@ -7,11 +7,12 @@ package model
 
 import (
 	"fmt"
-	"github.com/Team254/cheesy-arena-lite/game"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/BotDogs4645/da/game"
+	"github.com/stretchr/testify/assert"
 )
 
 func SetupTestDb(t *testing.T, uniqueName string) *Database {

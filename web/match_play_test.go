@@ -6,17 +6,18 @@ package web
 import (
 	"bytes"
 	"fmt"
-	"github.com/Team254/cheesy-arena-lite/field"
-	"github.com/Team254/cheesy-arena-lite/game"
-	"github.com/Team254/cheesy-arena-lite/model"
-	"github.com/Team254/cheesy-arena-lite/tournament"
-	"github.com/Team254/cheesy-arena-lite/websocket"
-	gorillawebsocket "github.com/gorilla/websocket"
-	"github.com/mitchellh/mapstructure"
-	"github.com/stretchr/testify/assert"
 	"log"
 	"testing"
 	"time"
+
+	"github.com/BotDogs4645/da/field"
+	"github.com/BotDogs4645/da/game"
+	"github.com/BotDogs4645/da/model"
+	"github.com/BotDogs4645/da/tournament"
+	"github.com/BotDogs4645/da/websocket"
+	gorillawebsocket "github.com/gorilla/websocket"
+	"github.com/mitchellh/mapstructure"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMatchPlay(t *testing.T) {

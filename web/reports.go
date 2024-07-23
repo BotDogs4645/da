@@ -9,14 +9,15 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/Team254/cheesy-arena-lite/bracket"
-	"github.com/Team254/cheesy-arena-lite/game"
-	"github.com/Team254/cheesy-arena-lite/model"
-	"github.com/Team254/cheesy-arena-lite/tournament"
-	"github.com/gorilla/mux"
-	"github.com/jung-kurt/gofpdf"
 	"net/http"
 	"strconv"
+
+	"github.com/BotDogs4645/da/bracket"
+	"github.com/BotDogs4645/da/game"
+	"github.com/BotDogs4645/da/model"
+	"github.com/BotDogs4645/da/tournament"
+	"github.com/gorilla/mux"
+	"github.com/jung-kurt/gofpdf"
 )
 
 // Generates a CSV-formatted report of the qualification rankings.

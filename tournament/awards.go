@@ -7,7 +7,8 @@ package tournament
 
 import (
 	"fmt"
-	"github.com/Team254/cheesy-arena-lite/model"
+
+	"github.com/BotDogs4645/da/model"
 )
 
 // Creates or updates the given award, depending on whether or not it already exists.

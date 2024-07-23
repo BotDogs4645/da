@@ -4,9 +4,10 @@
 package model
 
 import (
-	"github.com/Team254/cheesy-arena-lite/game"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/BotDogs4645/da/game"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetNonexistentRanking(t *testing.T) {

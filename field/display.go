@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Team254/cheesy-arena-lite/websocket"
+	"github.com/BotDogs4645/da/websocket"
 )
 
 const (

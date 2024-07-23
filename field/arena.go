@@ -7,14 +7,15 @@ package field
 
 import (
 	"fmt"
-	"github.com/Team254/cheesy-arena-lite/bracket"
-	"github.com/Team254/cheesy-arena-lite/game"
-	"github.com/Team254/cheesy-arena-lite/model"
-	"github.com/Team254/cheesy-arena-lite/network"
-	"github.com/Team254/cheesy-arena-lite/partner"
-	"github.com/Team254/cheesy-arena-lite/plc"
 	"log"
 	"time"
+
+	"github.com/BotDogs4645/da/bracket"
+	"github.com/BotDogs4645/da/game"
+	"github.com/BotDogs4645/da/model"
+	"github.com/BotDogs4645/da/network"
+	"github.com/BotDogs4645/da/partner"
+	"github.com/BotDogs4645/da/plc"
 )
 
 const (

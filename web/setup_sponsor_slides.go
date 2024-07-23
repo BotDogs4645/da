@@ -6,9 +6,10 @@
 package web
 
 import (
-	"github.com/Team254/cheesy-arena-lite/model"
 	"net/http"
 	"strconv"
+
+	"github.com/BotDogs4645/da/model"
 )
 
 // Shows the sponsor slides configuration page.

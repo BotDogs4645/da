@@ -8,8 +8,8 @@ package web
 import (
 	"net/http"
 
-	"github.com/Team254/cheesy-arena-lite/model"
-	"github.com/Team254/cheesy-arena-lite/websocket"
+	"github.com/BotDogs4645/da/model"
+	"github.com/BotDogs4645/da/websocket"
 )
 
 // Renders the logo view.

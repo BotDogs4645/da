@@ -6,10 +6,11 @@
 package model
 
 import (
-	"github.com/Team254/cheesy-arena-lite/game"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/BotDogs4645/da/game"
 )
 
 type Match struct {

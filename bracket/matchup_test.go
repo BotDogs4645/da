@@ -4,9 +4,10 @@
 package bracket
 
 import (
-	"github.com/Team254/cheesy-arena-lite/tournament"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/BotDogs4645/da/tournament"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMatchupDisplayNames(t *testing.T) {

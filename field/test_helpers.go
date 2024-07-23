@@ -7,13 +7,14 @@ package field
 
 import (
 	"fmt"
-	"github.com/Team254/cheesy-arena-lite/game"
-	"github.com/Team254/cheesy-arena-lite/model"
-	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/BotDogs4645/da/game"
+	"github.com/BotDogs4645/da/model"
+	"github.com/stretchr/testify/assert"
 )
 
 func SetupTestArena(t *testing.T, uniqueName string) *Arena {

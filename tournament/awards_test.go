@@ -4,9 +4,10 @@
 package tournament
 
 import (
-	"github.com/Team254/cheesy-arena-lite/model"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/BotDogs4645/da/model"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateOrUpdateAwardWithIntro(t *testing.T) {

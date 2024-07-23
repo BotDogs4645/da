@@ -6,9 +6,10 @@
 package tournament
 
 import (
-	"github.com/Team254/cheesy-arena-lite/game"
-	"github.com/Team254/cheesy-arena-lite/model"
 	"sort"
+
+	"github.com/BotDogs4645/da/game"
+	"github.com/BotDogs4645/da/model"
 )
 
 // Determines the rankings from the stored match results, and saves them to the database.

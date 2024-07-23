@@ -8,9 +8,10 @@ package bracket
 
 import (
 	"fmt"
-	"github.com/Team254/cheesy-arena-lite/game"
-	"github.com/Team254/cheesy-arena-lite/model"
 	"strconv"
+
+	"github.com/BotDogs4645/da/game"
+	"github.com/BotDogs4645/da/model"
 )
 
 // Conveys how a given alliance should be populated -- either directly from alliance selection or based on the results

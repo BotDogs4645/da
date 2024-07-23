@@ -5,11 +5,12 @@ package web
 
 import (
 	"encoding/json"
-	"github.com/Team254/cheesy-arena-lite/field"
-	"github.com/Team254/cheesy-arena-lite/game"
-	"github.com/stretchr/testify/assert"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/BotDogs4645/da/field"
+	"github.com/BotDogs4645/da/game"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetScores(t *testing.T) {

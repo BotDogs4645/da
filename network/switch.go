@@ -9,11 +9,12 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/Team254/cheesy-arena-lite/model"
 	"net"
 	"regexp"
 	"strconv"
 	"sync"
+
+	"github.com/BotDogs4645/da/model"
 )
 
 const switchTelnetPort = 23

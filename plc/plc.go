@@ -7,11 +7,12 @@ package plc
 
 import (
 	"fmt"
-	"github.com/Team254/cheesy-arena-lite/websocket"
-	"github.com/goburrow/modbus"
 	"log"
 	"strings"
 	"time"
+
+	"github.com/BotDogs4645/da/websocket"
+	"github.com/goburrow/modbus"
 )
 
 type Plc struct {

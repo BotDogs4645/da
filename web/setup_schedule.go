@@ -7,11 +7,12 @@ package web
 
 import (
 	"fmt"
-	"github.com/Team254/cheesy-arena-lite/model"
-	"github.com/Team254/cheesy-arena-lite/tournament"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/BotDogs4645/da/model"
+	"github.com/BotDogs4645/da/tournament"
 )
 
 // Global vars to hold schedules that are in the process of being generated.

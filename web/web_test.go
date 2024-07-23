@@ -4,15 +4,16 @@
 package web
 
 import (
-	"github.com/Team254/cheesy-arena-lite/field"
-	"github.com/Team254/cheesy-arena-lite/game"
-	"github.com/Team254/cheesy-arena-lite/websocket"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/BotDogs4645/da/field"
+	"github.com/BotDogs4645/da/game"
+	"github.com/BotDogs4645/da/websocket"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestIndex(t *testing.T) {

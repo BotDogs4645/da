@@ -53,10 +53,11 @@ package web
 
 import (
 	"encoding/json"
-	"github.com/Team254/cheesy-arena-lite/field"
-	"github.com/Team254/cheesy-arena-lite/game"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/BotDogs4645/da/field"
+	"github.com/BotDogs4645/da/game"
 )
 
 type jsonAllianceScore struct {

@@ -6,14 +6,15 @@ package partner
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/Team254/cheesy-arena-lite/game"
-	"github.com/Team254/cheesy-arena-lite/model"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/BotDogs4645/da/game"
+	"github.com/BotDogs4645/da/model"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPublishTeams(t *testing.T) {

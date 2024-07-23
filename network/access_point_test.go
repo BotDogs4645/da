@@ -5,11 +5,12 @@ package network
 
 import (
 	"fmt"
-	"github.com/Team254/cheesy-arena-lite/model"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"regexp"
 	"testing"
+
+	"github.com/BotDogs4645/da/model"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConfigureAccessPoint(t *testing.T) {

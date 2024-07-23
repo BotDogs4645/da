@@ -7,11 +7,12 @@ package field
 
 import (
 	"fmt"
-	"github.com/Team254/cheesy-arena-lite/model"
 	"log"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/BotDogs4645/da/model"
 )
 
 const logsDir = "static/logs"

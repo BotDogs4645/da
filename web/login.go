@@ -7,11 +7,12 @@ package web
 
 import (
 	"fmt"
-	"github.com/Team254/cheesy-arena-lite/model"
-	"github.com/google/uuid"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/BotDogs4645/da/model"
+	"github.com/google/uuid"
 )
 
 // Shows the login form.

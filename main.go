@@ -7,9 +7,10 @@
 package main
 
 import (
-	"github.com/Team254/cheesy-arena-lite/field"
-	"github.com/Team254/cheesy-arena-lite/web"
 	"log"
+
+	"github.com/BotDogs4645/da/field"
+	"github.com/BotDogs4645/da/web"
 )
 
 const eventDbPath = "./event.db"

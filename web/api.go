@@ -8,15 +8,16 @@ package web
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Team254/cheesy-arena-lite/game"
-	"github.com/Team254/cheesy-arena-lite/model"
-	"github.com/Team254/cheesy-arena-lite/partner"
-	"github.com/Team254/cheesy-arena-lite/websocket"
-	"github.com/gorilla/mux"
 	"io"
 	"net/http"
 	"os"
 	"strconv"
+
+	"github.com/BotDogs4645/da/game"
+	"github.com/BotDogs4645/da/model"
+	"github.com/BotDogs4645/da/partner"
+	"github.com/BotDogs4645/da/websocket"
+	"github.com/gorilla/mux"
 )
 
 type MatchResultWithSummary struct {

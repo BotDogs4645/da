@@ -7,11 +7,12 @@ package web
 
 import (
 	"fmt"
-	"github.com/Team254/cheesy-arena-lite/game"
-	"github.com/Team254/cheesy-arena-lite/model"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/BotDogs4645/da/game"
+	"github.com/BotDogs4645/da/model"
 )
 
 type RankedTeam struct {

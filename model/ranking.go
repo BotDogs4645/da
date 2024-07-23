@@ -6,8 +6,9 @@
 package model
 
 import (
-	"github.com/Team254/cheesy-arena-lite/game"
 	"sort"
+
+	"github.com/BotDogs4645/da/game"
 )
 
 func (database *Database) CreateRanking(ranking *game.Ranking) error {

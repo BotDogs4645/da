@@ -7,9 +7,10 @@ package bracket
 
 import (
 	"fmt"
-	"github.com/Team254/cheesy-arena-lite/model"
 	"sort"
 	"time"
+
+	"github.com/BotDogs4645/da/model"
 )
 
 type Bracket struct {

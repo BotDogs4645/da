@@ -5,7 +5,7 @@
 
 package model
 
-import "github.com/Team254/cheesy-arena-lite/game"
+import "github.com/BotDogs4645/da/game"
 
 type EventSettings struct {
 	Id                          int `db:"id"`

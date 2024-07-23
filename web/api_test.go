@@ -5,14 +5,15 @@ package web
 
 import (
 	"encoding/json"
-	"github.com/Team254/cheesy-arena-lite/game"
-	"github.com/Team254/cheesy-arena-lite/model"
-	"github.com/Team254/cheesy-arena-lite/tournament"
-	"github.com/Team254/cheesy-arena-lite/websocket"
-	gorillawebsocket "github.com/gorilla/websocket"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/BotDogs4645/da/game"
+	"github.com/BotDogs4645/da/model"
+	"github.com/BotDogs4645/da/tournament"
+	"github.com/BotDogs4645/da/websocket"
+	gorillawebsocket "github.com/gorilla/websocket"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMatchesApi(t *testing.T) {

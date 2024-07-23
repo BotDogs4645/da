@@ -7,13 +7,14 @@ package web
 
 import (
 	"fmt"
-	"github.com/Team254/cheesy-arena-lite/field"
-	"github.com/Team254/cheesy-arena-lite/model"
-	"github.com/Team254/cheesy-arena-lite/websocket"
-	"github.com/mitchellh/mapstructure"
 	"io"
 	"log"
 	"net/http"
+
+	"github.com/BotDogs4645/da/field"
+	"github.com/BotDogs4645/da/model"
+	"github.com/BotDogs4645/da/websocket"
+	"github.com/mitchellh/mapstructure"
 )
 
 // Shows the displays configuration page.

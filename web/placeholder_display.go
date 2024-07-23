@@ -6,9 +6,10 @@
 package web
 
 import (
-	"github.com/Team254/cheesy-arena-lite/model"
-	"github.com/Team254/cheesy-arena-lite/websocket"
 	"net/http"
+
+	"github.com/BotDogs4645/da/model"
+	"github.com/BotDogs4645/da/websocket"
 )
 
 // Shows a random ID to visually identify the display so that it can be configured on the server.

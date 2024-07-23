@@ -8,13 +8,14 @@ package web
 import (
 	"bytes"
 	"fmt"
-	"github.com/Team254/cheesy-arena-lite/model"
-	"github.com/dchest/uniuri"
-	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/BotDogs4645/da/model"
+	"github.com/dchest/uniuri"
+	"github.com/gorilla/mux"
 )
 
 const wpaKeyLength = 8

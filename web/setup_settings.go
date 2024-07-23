@@ -7,7 +7,6 @@ package web
 
 import (
 	"fmt"
-	"github.com/Team254/cheesy-arena-lite/model"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -15,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/BotDogs4645/da/model"
 )
 
 // Shows the event settings editing page.
