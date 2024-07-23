@@ -6,13 +6,12 @@ package partner
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/Team254/cheesy-arena/game"
-	"github.com/Team254/cheesy-arena/model"
+	"github.com/Team254/cheesy-arena-lite/game"
+	"github.com/Team254/cheesy-arena-lite/model"
 	"github.com/stretchr/testify/assert"
-	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 )
@@ -42,20 +41,9 @@ func TestPublishTeams(t *testing.T) {
 func TestPublishMatches(t *testing.T) {
 	database := setupTestDb(t)
 
-	match1 := model.Match{
-		Type:        model.Qualification,
-		ShortName:   "Q2",
-		Time:        time.Unix(600, 0),
-		Red1:        7,
-		Red2:        8,
-		Red3:        9,
-		Blue1:       10,
-		Blue2:       11,
-		Blue3:       12,
-		Status:      game.RedWonMatch,
-		TbaMatchKey: model.TbaMatchKey{"qm", 0, 2},
-	}
-	match2 := model.Match{Type: model.Playoff, ShortName: "SF2-2", TbaMatchKey: model.TbaMatchKey{"omg", 5, 29}}
+	match1 := model.Match{Type: "qualification", DisplayName: "2", Time: time.Unix(600, 0), Red1: 7, Red2: 8, Red3: 9,
+		Blue1: 10, Blue2: 11, Blue3: 12, Status: game.RedWonMatch}
+	match2 := model.Match{Type: "elimination", DisplayName: "SF2-2", ElimRound: 3, ElimGroup: 2, ElimInstance: 2}
 	database.CreateMatch(&match1)
 	database.CreateMatch(&match2)
 	matchResult1 := model.BuildTestMatchResult(match1.Id, 1)
@@ -63,16 +51,12 @@ func TestPublishMatches(t *testing.T) {
 
 	// Mock the TBA server.
 	tbaServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
+		body, _ := ioutil.ReadAll(r.Body)
 		var matches []*TbaMatch
 		json.Unmarshal(body, &matches)
 		assert.Equal(t, 2, len(matches))
 		assert.Equal(t, "qm", matches[0].CompLevel)
-		assert.Equal(t, 0, matches[0].SetNumber)
-		assert.Equal(t, 2, matches[0].MatchNumber)
-		assert.Equal(t, "omg", matches[1].CompLevel)
-		assert.Equal(t, 5, matches[1].SetNumber)
-		assert.Equal(t, 29, matches[1].MatchNumber)
+		assert.Equal(t, "sf", matches[1].CompLevel)
 	}))
 	defer tbaServer.Close()
 	client := NewTbaClient("my_event_code", "my_secret_id", "my_secret")
@@ -89,7 +73,7 @@ func TestPublishRankings(t *testing.T) {
 
 	// Mock the TBA server.
 	tbaServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
+		body, _ := ioutil.ReadAll(r.Body)
 		var response TbaRankings
 		json.Unmarshal(body, &response)
 		assert.Equal(t, 2, len(response.Rankings))
@@ -112,15 +96,11 @@ func TestPublishAlliances(t *testing.T) {
 	tbaServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var reader bytes.Buffer
 		reader.ReadFrom(r.Body)
-		if strings.Contains(r.URL.String(), "alliance_selections") {
-			assert.Equal(
-				t,
-				"[[\"frc254\",\"frc469\",\"frc2848\",\"frc74\",\"frc3175\"],[\"frc1718\",\"frc2451\",\"frc1619\"]]",
-				reader.String(),
-			)
-		} else {
-			assert.Equal(t, "{\"playoff_type\":10}", reader.String())
-		}
+		assert.Equal(
+			t,
+			"[[\"frc254\",\"frc469\",\"frc2848\",\"frc74\",\"frc3175\"],[\"frc1718\",\"frc2451\",\"frc1619\"]]",
+			reader.String(),
+		)
 	}))
 	defer tbaServer.Close()
 	client := NewTbaClient("my_event_code", "my_secret_id", "my_secret")

@@ -13,12 +13,6 @@ type Alliance struct {
 	Lineup  [3]int
 }
 
-type AllianceSelectionRankedTeam struct {
-	Rank   int
-	TeamId int
-	Picked bool
-}
-
 func (database *Database) CreateAlliance(alliance *Alliance) error {
 	return database.allianceTable.create(alliance)
 }
@@ -84,18 +78,18 @@ func (database *Database) UpdateAllianceFromMatch(allianceId int, matchTeamIds [
 }
 
 // Returns two arrays containing the IDs of any teams for the red and blue alliances, respectively, who are part of the
-// playoff alliance but are not playing in the given match.
-// If the given match isn't a playoff match, empty arrays are returned.
+// elimination alliance but are not playing in the given match.
+// If the given match isn't an elimination match, empty arrays are returned.
 func (database *Database) GetOffFieldTeamIds(match *Match) ([]int, []int, error) {
 	redOffFieldTeams, err := database.getOffFieldTeamIdsForAlliance(
-		match.PlayoffRedAlliance, match.Red1, match.Red2, match.Red3,
+		match.ElimRedAlliance, match.Red1, match.Red2, match.Red3,
 	)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	blueOffFieldTeams, err := database.getOffFieldTeamIdsForAlliance(
-		match.PlayoffBlueAlliance, match.Blue1, match.Blue2, match.Blue3,
+		match.ElimBlueAlliance, match.Blue1, match.Blue2, match.Blue3,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -110,7 +104,7 @@ func (database *Database) getOffFieldTeamIdsForAlliance(allianceId int, teamId1,
 	}
 
 	alliance, err := database.GetAllianceById(allianceId)
-	if alliance == nil || err != nil {
+	if err != nil {
 		return nil, err
 	}
 	offFieldTeamIds := []int{}

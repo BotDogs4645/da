@@ -7,26 +7,28 @@ package web
 
 import (
 	"fmt"
+	"github.com/Team254/cheesy-arena-lite/bracket"
+	"github.com/Team254/cheesy-arena-lite/field"
+	"github.com/Team254/cheesy-arena-lite/game"
+	"github.com/Team254/cheesy-arena-lite/model"
+	"github.com/Team254/cheesy-arena-lite/tournament"
+	"github.com/Team254/cheesy-arena-lite/websocket"
+	"github.com/gorilla/mux"
+	"github.com/mitchellh/mapstructure"
 	"io"
 	"log"
 	"net/http"
 	"sort"
+	"strconv"
 	"time"
-
-	"github.com/Team254/cheesy-arena/field"
-	"github.com/Team254/cheesy-arena/game"
-	"github.com/Team254/cheesy-arena/model"
-	"github.com/Team254/cheesy-arena/tournament"
-	"github.com/Team254/cheesy-arena/websocket"
-	"github.com/mitchellh/mapstructure"
 )
 
 type MatchPlayListItem struct {
-	Id         int
-	ShortName  string
-	Time       string
-	Status     game.MatchStatus
-	ColorClass string
+	Id          int
+	DisplayName string
+	Time        string
+	Status      game.MatchStatus
+	ColorClass  string
 }
 
 type MatchPlayList []MatchPlayListItem
@@ -37,18 +39,73 @@ func (web *Web) matchPlayHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	practiceMatches, err := web.buildMatchPlayList("practice")
+	if err != nil {
+		handleWebErr(w, err)
+		return
+	}
+	qualificationMatches, err := web.buildMatchPlayList("qualification")
+	if err != nil {
+		handleWebErr(w, err)
+		return
+	}
+	eliminationMatches, err := web.buildMatchPlayList("elimination")
+	if err != nil {
+		handleWebErr(w, err)
+		return
+	}
+
 	template, err := web.parseFiles("templates/match_play.html", "templates/base.html")
 	if err != nil {
 		handleWebErr(w, err)
 		return
 	}
+	matchesByType := map[string]MatchPlayList{"practice": practiceMatches,
+		"qualification": qualificationMatches, "elimination": eliminationMatches}
+	currentMatchType := web.arena.CurrentMatch.Type
+	if currentMatchType == "test" {
+		currentMatchType = "practice"
+	}
+	redOffFieldTeams, blueOffFieldTeams, err := web.arena.Database.GetOffFieldTeamIds(web.arena.CurrentMatch)
+	if err != nil {
+		handleWebErr(w, err)
+		return
+	}
+	matchResult, err := web.arena.Database.GetMatchResultForMatch(web.arena.CurrentMatch.Id)
+	if err != nil {
+		handleWebErr(w, err)
+		return
+	}
+	isReplay := matchResult != nil
 	data := struct {
 		*model.EventSettings
 		PlcIsEnabled          bool
+		MatchesByType         map[string]MatchPlayList
+		CurrentMatchType      string
+		Match                 *model.Match
+		RedOffFieldTeams      []int
+		BlueOffFieldTeams     []int
+		RedScore              *game.Score
+		BlueScore             *game.Score
+		AllowSubstitution     bool
+		IsReplay              bool
+		SavedMatchType        string
+		SavedMatch            *model.Match
 		PlcArmorBlockStatuses map[string]bool
 	}{
 		web.arena.EventSettings,
 		web.arena.Plc.IsEnabled(),
+		matchesByType,
+		currentMatchType,
+		web.arena.CurrentMatch,
+		redOffFieldTeams,
+		blueOffFieldTeams,
+		web.arena.RedScore,
+		web.arena.BlueScore,
+		web.arena.CurrentMatch.ShouldAllowSubstitution(),
+		isReplay,
+		web.arena.SavedMatch.CapitalizedType(),
+		web.arena.SavedMatch,
 		web.arena.Plc.GetArmorBlockStatuses(),
 	}
 	err = template.ExecuteTemplate(w, "base", data)
@@ -58,55 +115,92 @@ func (web *Web) matchPlayHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Renders a partial template containing the list of matches.
-func (web *Web) matchPlayMatchLoadHandler(w http.ResponseWriter, r *http.Request) {
+// Loads the given match onto the arena in preparation for playing it.
+func (web *Web) matchPlayLoadHandler(w http.ResponseWriter, r *http.Request) {
 	if !web.userIsAdmin(w, r) {
 		return
 	}
 
-	practiceMatches, err := web.buildMatchPlayList(model.Practice)
-	if err != nil {
-		handleWebErr(w, err)
-		return
+	vars := mux.Vars(r)
+	matchId, _ := strconv.Atoi(vars["matchId"])
+	var match *model.Match
+	var err error
+	if matchId == 0 {
+		err = web.arena.LoadTestMatch()
+	} else {
+		match, err = web.arena.Database.GetMatchById(matchId)
+		if err != nil {
+			handleWebErr(w, err)
+			return
+		}
+		if match == nil {
+			handleWebErr(w, fmt.Errorf("Invalid match ID %d.", matchId))
+			return
+		}
+		err = web.arena.LoadMatch(match)
 	}
-	qualificationMatches, err := web.buildMatchPlayList(model.Qualification)
-	if err != nil {
-		handleWebErr(w, err)
-		return
-	}
-	playoffMatches, err := web.buildMatchPlayList(model.Playoff)
 	if err != nil {
 		handleWebErr(w, err)
 		return
 	}
 
-	matchesByType := map[model.MatchType]MatchPlayList{
-		model.Practice:      practiceMatches,
-		model.Qualification: qualificationMatches,
-		model.Playoff:       playoffMatches,
-	}
-	currentMatchType := web.arena.CurrentMatch.Type
-	if currentMatchType == model.Test {
-		currentMatchType = model.Practice
+	http.Redirect(w, r, "/match_play", 303)
+}
+
+// Loads the results for the given match into the display buffer.
+func (web *Web) matchPlayShowResultHandler(w http.ResponseWriter, r *http.Request) {
+	if !web.userIsAdmin(w, r) {
+		return
 	}
 
-	template, err := web.parseFiles("templates/match_play_match_load.html")
+	vars := mux.Vars(r)
+	matchId, _ := strconv.Atoi(vars["matchId"])
+	match, err := web.arena.Database.GetMatchById(matchId)
 	if err != nil {
 		handleWebErr(w, err)
 		return
 	}
-	data := struct {
-		MatchesByType    map[model.MatchType]MatchPlayList
-		CurrentMatchType model.MatchType
-	}{
-		matchesByType,
-		currentMatchType,
+	if match == nil {
+		handleWebErr(w, fmt.Errorf("Invalid match ID %d.", matchId))
+		return
 	}
-	err = template.ExecuteTemplate(w, "match_play_match_load.html", data)
+	matchResult, err := web.arena.Database.GetMatchResultForMatch(match.Id)
 	if err != nil {
 		handleWebErr(w, err)
 		return
 	}
+	if matchResult == nil {
+		handleWebErr(w, fmt.Errorf("No result found for match ID %d.", matchId))
+		return
+	}
+	if match.ShouldUpdateRankings() {
+		web.arena.SavedRankings, err = web.arena.Database.GetAllRankings()
+		if err != nil {
+			handleWebErr(w, err)
+			return
+		}
+	} else {
+		web.arena.SavedRankings = game.Rankings{}
+	}
+	web.arena.SavedMatch = match
+	web.arena.SavedMatchResult = matchResult
+	web.arena.ScorePostedNotifier.Notify()
+
+	http.Redirect(w, r, "/match_play", 303)
+}
+
+// Clears the match results display buffer.
+func (web *Web) matchPlayClearResultHandler(w http.ResponseWriter, r *http.Request) {
+	if !web.userIsAdmin(w, r) {
+		return
+	}
+
+	// Load an empty match to effectively clear the buffer.
+	web.arena.SavedMatch = &model.Match{}
+	web.arena.SavedMatchResult = model.NewMatchResult()
+	web.arena.ScorePostedNotifier.Notify()
+
+	http.Redirect(w, r, "/match_play", 303)
 }
 
 // The websocket endpoint for the match play client to send control commands and receive status updates.
@@ -123,18 +217,9 @@ func (web *Web) matchPlayWebsocketHandler(w http.ResponseWriter, r *http.Request
 	defer ws.Close()
 
 	// Subscribe the websocket to the notifiers whose messages will be passed on to the client, in a separate goroutine.
-	go ws.HandleNotifiers(
-		web.arena.MatchTimingNotifier,
-		web.arena.AllianceStationDisplayModeNotifier,
-		web.arena.ArenaStatusNotifier,
-		web.arena.AudienceDisplayModeNotifier,
-		web.arena.EventStatusNotifier,
-		web.arena.MatchLoadNotifier,
-		web.arena.MatchTimeNotifier,
-		web.arena.RealtimeScoreNotifier,
-		web.arena.ScorePostedNotifier,
-		web.arena.ScoringStatusNotifier,
-	)
+	go ws.HandleNotifiers(web.arena.MatchTimingNotifier, web.arena.ArenaStatusNotifier, web.arena.MatchTimeNotifier,
+		web.arena.RealtimeScoreNotifier, web.arena.AudienceDisplayModeNotifier,
+		web.arena.AllianceStationDisplayModeNotifier, web.arena.EventStatusNotifier)
 
 	// Loop, waiting for commands and responding to them, until the client closes the connection.
 	for {
@@ -149,99 +234,17 @@ func (web *Web) matchPlayWebsocketHandler(w http.ResponseWriter, r *http.Request
 		}
 
 		switch messageType {
-		case "loadMatch":
+		case "substituteTeam":
 			args := struct {
-				MatchId int
+				Team     int
+				Position string
 			}{}
 			err = mapstructure.Decode(data, &args)
 			if err != nil {
 				ws.WriteError(err.Error())
 				continue
 			}
-			err = web.arena.ResetMatch()
-			if err != nil {
-				ws.WriteError(err.Error())
-				continue
-			}
-			if args.MatchId == 0 {
-				err = web.arena.LoadTestMatch()
-			} else {
-				match, err := web.arena.Database.GetMatchById(args.MatchId)
-				if err != nil {
-					ws.WriteError(err.Error())
-					continue
-				}
-				if match == nil {
-					ws.WriteError(fmt.Sprintf("invalid match ID %d", args.MatchId))
-					continue
-				}
-				err = web.arena.LoadMatch(match)
-			}
-			if err != nil {
-				ws.WriteError(err.Error())
-				continue
-			}
-		case "showResult":
-			args := struct {
-				MatchId int
-			}{}
-			err = mapstructure.Decode(data, &args)
-			if err != nil {
-				ws.WriteError(err.Error())
-				continue
-			}
-			if args.MatchId == 0 {
-				// Load an empty match to effectively clear the buffer.
-				web.arena.SavedMatch = &model.Match{}
-				web.arena.SavedMatchResult = model.NewMatchResult()
-				web.arena.ScorePostedNotifier.Notify()
-				continue
-			}
-			match, err := web.arena.Database.GetMatchById(args.MatchId)
-			if err != nil {
-				ws.WriteError(err.Error())
-				continue
-			}
-			if match == nil {
-				ws.WriteError(fmt.Sprintf("invalid match ID %d", args.MatchId))
-				continue
-			}
-			matchResult, err := web.arena.Database.GetMatchResultForMatch(match.Id)
-			if err != nil {
-				ws.WriteError(err.Error())
-				continue
-			}
-			if matchResult == nil {
-				ws.WriteError(fmt.Sprintf("No result found for match ID %d.", args.MatchId))
-				continue
-			}
-			if match.ShouldUpdateRankings() {
-				web.arena.SavedRankings, err = web.arena.Database.GetAllRankings()
-				if err != nil {
-					ws.WriteError(err.Error())
-					continue
-				}
-			} else {
-				web.arena.SavedRankings = game.Rankings{}
-			}
-			web.arena.SavedMatch = match
-			web.arena.SavedMatchResult = matchResult
-			web.arena.ScorePostedNotifier.Notify()
-		case "substituteTeams":
-			args := struct {
-				Red1  int
-				Red2  int
-				Red3  int
-				Blue1 int
-				Blue2 int
-				Blue3 int
-			}{}
-			err = mapstructure.Decode(data, &args)
-			if err != nil {
-				ws.WriteError(err.Error())
-				continue
-			}
-			err = web.arena.SubstituteTeams(args.Red1, args.Red2, args.Red3, args.Blue1, args.Blue2, args.Blue3)
+			err = web.arena.SubstituteTeam(args.Team, args.Position)
 			if err != nil {
 				ws.WriteError(err.Error())
 				continue
@@ -257,9 +260,6 @@ func (web *Web) matchPlayWebsocketHandler(w http.ResponseWriter, r *http.Request
 				continue
 			}
 			web.arena.AllianceStations[station].Bypass = !web.arena.AllianceStations[station].Bypass
-			if err = ws.WriteNotifier(web.arena.ArenaStatusNotifier); err != nil {
-				log.Println(err)
-			}
 		case "startMatch":
 			args := struct {
 				MuteMatchSounds bool
@@ -281,19 +281,23 @@ func (web *Web) matchPlayWebsocketHandler(w http.ResponseWriter, r *http.Request
 				ws.WriteError(err.Error())
 				continue
 			}
+		case "signalVolunteers":
+			if web.arena.MatchState != field.PostMatch {
+				// Don't allow clearing the field until the match is over.
+				continue
+			}
+			web.arena.FieldVolunteers = true
+			continue // Don't reload.
 		case "signalReset":
-			if web.arena.MatchState != field.PostMatch && web.arena.MatchState != field.PreMatch {
+			if web.arena.MatchState != field.PostMatch {
 				// Don't allow clearing the field until the match is over.
 				continue
 			}
 			web.arena.FieldReset = true
 			web.arena.AllianceStationDisplayMode = "fieldReset"
 			web.arena.AllianceStationDisplayModeNotifier.Notify()
+			continue // Don't reload.
 		case "commitResults":
-			if web.arena.MatchState != field.PostMatch {
-				ws.WriteError("cannot commit match while it is in progress")
-				continue
-			}
 			err = web.commitCurrentMatchScore()
 			if err != nil {
 				ws.WriteError(err.Error())
@@ -304,22 +308,34 @@ func (web *Web) matchPlayWebsocketHandler(w http.ResponseWriter, r *http.Request
 				ws.WriteError(err.Error())
 				continue
 			}
-			err = web.arena.LoadNextMatch(true)
+			err = web.arena.LoadNextMatch()
 			if err != nil {
 				ws.WriteError(err.Error())
 				continue
 			}
+			err = ws.WriteNotifier(web.arena.ReloadDisplaysNotifier)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			continue // Skip sending the status update, as the client is about to terminate and reload.
 		case "discardResults":
 			err = web.arena.ResetMatch()
 			if err != nil {
 				ws.WriteError(err.Error())
 				continue
 			}
-			err = web.arena.LoadNextMatch(false)
+			err = web.arena.LoadNextMatch()
 			if err != nil {
 				ws.WriteError(err.Error())
 				continue
 			}
+			err = ws.WriteNotifier(web.arena.ReloadDisplaysNotifier)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			continue // Skip sending the status update, as the client is about to terminate and reload.
 		case "setAudienceDisplay":
 			mode, ok := data.(string)
 			if !ok {
@@ -327,6 +343,7 @@ func (web *Web) matchPlayWebsocketHandler(w http.ResponseWriter, r *http.Request
 				continue
 			}
 			web.arena.SetAudienceDisplayMode(mode)
+			continue
 		case "setAllianceStationDisplay":
 			mode, ok := data.(string)
 			if !ok {
@@ -334,19 +351,20 @@ func (web *Web) matchPlayWebsocketHandler(w http.ResponseWriter, r *http.Request
 				continue
 			}
 			web.arena.SetAllianceStationDisplayMode(mode)
+			continue
 		case "startTimeout":
 			durationSec, ok := data.(float64)
 			if !ok {
 				ws.WriteError(fmt.Sprintf("Failed to parse '%s' message.", messageType))
 				continue
 			}
-			err = web.arena.StartTimeout("Timeout", int(durationSec))
+			err = web.arena.StartTimeout(int(durationSec))
 			if err != nil {
 				ws.WriteError(err.Error())
 				continue
 			}
 		case "setTestMatchName":
-			if web.arena.CurrentMatch.Type != model.Test {
+			if web.arena.CurrentMatch.Type != "test" {
 				// Don't allow changing the name of a non-test match.
 				continue
 			}
@@ -355,10 +373,28 @@ func (web *Web) matchPlayWebsocketHandler(w http.ResponseWriter, r *http.Request
 				ws.WriteError(fmt.Sprintf("Failed to parse '%s' message.", messageType))
 				continue
 			}
-			web.arena.CurrentMatch.LongName = name
+			web.arena.CurrentMatch.DisplayName = name
 			web.arena.MatchLoadNotifier.Notify()
+			continue
+		case "updateRealtimeScore":
+			args := data.(map[string]interface{})
+			web.arena.BlueScore.AutoPoints = int(args["blueAuto"].(float64))
+			web.arena.RedScore.AutoPoints = int(args["redAuto"].(float64))
+			web.arena.BlueScore.TeleopPoints = int(args["blueTeleop"].(float64))
+			web.arena.RedScore.TeleopPoints = int(args["redTeleop"].(float64))
+			web.arena.BlueScore.EndgamePoints = int(args["blueEndgame"].(float64))
+			web.arena.RedScore.EndgamePoints = int(args["redEndgame"].(float64))
+			web.arena.RealtimeScoreNotifier.Notify()
 		default:
 			ws.WriteError(fmt.Sprintf("Invalid message type '%s'.", messageType))
+			continue
+		}
+
+		// Send out the status again after handling the command, as it most likely changed as a result.
+		err = ws.WriteNotifier(web.arena.ArenaStatusNotifier)
+		if err != nil {
+			log.Println(err)
+			return
 		}
 	}
 }
@@ -367,18 +403,7 @@ func (web *Web) matchPlayWebsocketHandler(w http.ResponseWriter, r *http.Request
 func (web *Web) commitMatchScore(match *model.Match, matchResult *model.MatchResult, isMatchReviewEdit bool) error {
 	var updatedRankings game.Rankings
 
-	if match.Type == model.Playoff {
-		// Adjust the score if necessary for a playoff DQ.
-		matchResult.CorrectPlayoffScore()
-	}
-
-	// Update the match record.
-	match.ScoreCommittedAt = time.Now()
-	redScoreSummary := matchResult.RedScoreSummary()
-	blueScoreSummary := matchResult.BlueScoreSummary()
-	match.Status = game.DetermineMatchStatus(redScoreSummary, blueScoreSummary, match.UseTiebreakCriteria)
-
-	if match.Type != model.Test {
+	if match.Type != "test" {
 		if matchResult.PlayNumber == 0 {
 			// Determine the play number for this new match result.
 			prevMatchResult, err := web.arena.Database.GetMatchResultForMatch(match.Id)
@@ -404,16 +429,14 @@ func (web *Web) commitMatchScore(match *model.Match, matchResult *model.MatchRes
 			}
 		}
 
+		// Update and save the match record to the database.
+		match.ScoreCommittedAt = time.Now()
+		redScoreSummary := matchResult.RedScoreSummary()
+		blueScoreSummary := matchResult.BlueScoreSummary()
+		match.Status = game.DetermineMatchStatus(redScoreSummary, blueScoreSummary)
 		err := web.arena.Database.UpdateMatch(match)
 		if err != nil {
 			return err
-		}
-
-		if match.ShouldUpdateCards() {
-			// Regenerate the residual yellow cards that teams may carry.
-			if err = tournament.CalculateTeamCards(web.arena.Database, match.Type); err != nil {
-				return err
-			}
 		}
 
 		if match.ShouldUpdateRankings() {
@@ -425,27 +448,28 @@ func (web *Web) commitMatchScore(match *model.Match, matchResult *model.MatchRes
 			updatedRankings = rankings
 		}
 
-		if match.ShouldUpdatePlayoffMatches() {
+		if match.ShouldUpdateEliminationMatches() {
 			if err = web.arena.Database.UpdateAllianceFromMatch(
-				match.PlayoffRedAlliance, [3]int{match.Red1, match.Red2, match.Red3},
+				match.ElimRedAlliance, [3]int{match.Red1, match.Red2, match.Red3},
 			); err != nil {
 				return err
 			}
 			if err = web.arena.Database.UpdateAllianceFromMatch(
-				match.PlayoffBlueAlliance, [3]int{match.Blue1, match.Blue2, match.Blue3},
+				match.ElimBlueAlliance, [3]int{match.Blue1, match.Blue2, match.Blue3},
 			); err != nil {
 				return err
 			}
 
-			// Populate any subsequent playoff matches.
-			if err = web.arena.UpdatePlayoffTournament(); err != nil {
+			// Generate any subsequent elimination matches.
+			nextMatchTime := time.Now().Add(time.Second * bracket.ElimMatchSpacingSec)
+			if err = web.arena.UpdatePlayoffBracket(&nextMatchTime); err != nil {
 				return err
 			}
 
 			// Generate awards if the tournament is over.
-			if web.arena.PlayoffTournament.IsComplete() {
-				winnerAllianceId := web.arena.PlayoffTournament.WinningAllianceId()
-				finalistAllianceId := web.arena.PlayoffTournament.FinalistAllianceId()
+			if web.arena.PlayoffBracket.IsComplete() {
+				winnerAllianceId := web.arena.PlayoffBracket.Winner()
+				finalistAllianceId := web.arena.PlayoffBracket.Finalist()
 				if err = tournament.CreateOrUpdateWinnerAndFinalistAwards(
 					web.arena.Database, winnerAllianceId, finalistAllianceId,
 				); err != nil {
@@ -454,7 +478,7 @@ func (web *Web) commitMatchScore(match *model.Match, matchResult *model.MatchRes
 			}
 		}
 
-		if web.arena.EventSettings.TbaPublishingEnabled && match.Type != model.Practice {
+		if web.arena.EventSettings.TbaPublishingEnabled && match.Type != "practice" {
 			// Publish asynchronously to The Blue Alliance.
 			go func() {
 				if err = web.arena.TbaClient.PublishMatches(web.arena.Database); err != nil {
@@ -470,7 +494,7 @@ func (web *Web) commitMatchScore(match *model.Match, matchResult *model.MatchRes
 
 		// Back up the database, but don't error out if it fails.
 		err = web.arena.Database.Backup(web.arena.EventSettings.Name,
-			fmt.Sprintf("post_%s_match_%s", match.Type, match.ShortName))
+			fmt.Sprintf("post_%s_match_%s", match.Type, match.DisplayName))
 		if err != nil {
 			log.Println(err)
 		}
@@ -489,8 +513,7 @@ func (web *Web) commitMatchScore(match *model.Match, matchResult *model.MatchRes
 
 func (web *Web) getCurrentMatchResult() *model.MatchResult {
 	return &model.MatchResult{MatchId: web.arena.CurrentMatch.Id, MatchType: web.arena.CurrentMatch.Type,
-		RedScore: &web.arena.RedRealtimeScore.CurrentScore, BlueScore: &web.arena.BlueRealtimeScore.CurrentScore,
-		RedCards: web.arena.RedRealtimeScore.Cards, BlueCards: web.arena.BlueRealtimeScore.Cards}
+		RedScore: web.arena.RedScore, BlueScore: web.arena.BlueScore}
 }
 
 // Saves the realtime result as the final score for the match currently loaded into the arena.
@@ -505,7 +528,7 @@ func (list MatchPlayList) Len() int {
 
 // Helper function to implement the required interface for Sort.
 func (list MatchPlayList) Less(i, j int) bool {
-	return list[i].Status == game.MatchScheduled && list[j].Status != game.MatchScheduled
+	return list[i].Status == game.MatchNotPlayed && list[j].Status != game.MatchNotPlayed
 }
 
 // Helper function to implement the required interface for Sort.
@@ -514,8 +537,8 @@ func (list MatchPlayList) Swap(i, j int) {
 }
 
 // Constructs the list of matches to display on the side of the match play interface.
-func (web *Web) buildMatchPlayList(matchType model.MatchType) (MatchPlayList, error) {
-	matches, err := web.arena.Database.GetMatchesByType(matchType, false)
+func (web *Web) buildMatchPlayList(matchType string) (MatchPlayList, error) {
+	matches, err := web.arena.Database.GetMatchesByType(matchType)
 	if err != nil {
 		return MatchPlayList{}, err
 	}
@@ -523,21 +546,21 @@ func (web *Web) buildMatchPlayList(matchType model.MatchType) (MatchPlayList, er
 	matchPlayList := make(MatchPlayList, len(matches))
 	for i, match := range matches {
 		matchPlayList[i].Id = match.Id
-		matchPlayList[i].ShortName = match.ShortName
+		matchPlayList[i].DisplayName = match.TypePrefix() + match.DisplayName
 		matchPlayList[i].Time = match.Time.Local().Format("3:04 PM")
 		matchPlayList[i].Status = match.Status
 		switch match.Status {
 		case game.RedWonMatch:
-			matchPlayList[i].ColorClass = "red"
+			matchPlayList[i].ColorClass = "danger"
 		case game.BlueWonMatch:
-			matchPlayList[i].ColorClass = "blue"
+			matchPlayList[i].ColorClass = "info"
 		case game.TieMatch:
-			matchPlayList[i].ColorClass = "yellow"
+			matchPlayList[i].ColorClass = "warning"
 		default:
 			matchPlayList[i].ColorClass = ""
 		}
 		if web.arena.CurrentMatch != nil && matchPlayList[i].Id == web.arena.CurrentMatch.Id {
-			matchPlayList[i].ColorClass = "green"
+			matchPlayList[i].ColorClass = "success"
 		}
 	}
 

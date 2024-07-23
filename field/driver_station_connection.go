@@ -7,15 +7,14 @@ package field
 
 import (
 	"fmt"
+	"github.com/Team254/cheesy-arena-lite/game"
+	"github.com/Team254/cheesy-arena-lite/model"
+	"github.com/Team254/cheesy-arena-lite/network"
 	"log"
 	"net"
 	"regexp"
 	"strconv"
 	"time"
-
-	"github.com/Team254/cheesy-arena/game"
-	"github.com/Team254/cheesy-arena/model"
-	"github.com/Team254/cheesy-arena/network"
 )
 
 // FMS uses 1121 for sending UDP packets, and FMS Lite uses 1120. Using 1121
@@ -34,11 +33,9 @@ type DriverStationConnection struct {
 	AllianceStation           string
 	Auto                      bool
 	Enabled                   bool
-	EStop                     bool
-	AStop                     bool
+	Estop                     bool
 	DsLinked                  bool
 	RadioLinked               bool
-	RioLinked                 bool
 	RobotLinked               bool
 	BatteryVoltage            float64
 	DsRobotTripTimeMs         int
@@ -102,7 +99,6 @@ func (arena *Arena) listenForDsUdpPackets() {
 			dsConn.DsLinked = true
 			dsConn.lastPacketTime = time.Now()
 
-			dsConn.RioLinked = data[3]&0x08 != 0
 			dsConn.RadioLinked = data[3]&0x10 != 0
 			dsConn.RobotLinked = data[3]&0x20 != 0
 			if dsConn.RobotLinked {
@@ -125,7 +121,6 @@ func (dsConn *DriverStationConnection) update(arena *Arena) error {
 	if time.Since(dsConn.lastPacketTime).Seconds() > driverStationUdpLinkTimeoutSec {
 		dsConn.DsLinked = false
 		dsConn.RadioLinked = false
-		dsConn.RioLinked = false
 		dsConn.RobotLinked = false
 		dsConn.BatteryVoltage = 0
 	}
@@ -147,11 +142,11 @@ func (dsConn *DriverStationConnection) close() {
 }
 
 // Called at the start of the match to allow for driver station initialization.
-func (dsConn *DriverStationConnection) signalMatchStart(match *model.Match, wifiStatus *network.TeamWifiStatus) error {
+func (dsConn *DriverStationConnection) signalMatchStart(match *model.Match) error {
 	// Zero out missed packet count and begin logging.
 	dsConn.missedPacketOffset = dsConn.MissedPacketCount
 	var err error
-	dsConn.log, err = NewTeamMatchLog(dsConn.TeamId, match, wifiStatus)
+	dsConn.log, err = NewTeamMatchLog(dsConn.TeamId, match)
 	return err
 }
 
@@ -174,11 +169,8 @@ func (dsConn *DriverStationConnection) encodeControlPacket(arena *Arena) [22]byt
 	if dsConn.Enabled {
 		packet[3] |= 0x04
 	}
-	if dsConn.EStop {
+	if dsConn.Estop {
 		packet[3] |= 0x80
-	}
-	if dsConn.AStop {
-		packet[3] |= 0x40
 	}
 
 	// Unknown or unused.
@@ -189,20 +181,30 @@ func (dsConn *DriverStationConnection) encodeControlPacket(arena *Arena) [22]byt
 
 	// Match type.
 	match := arena.CurrentMatch
-	switch match.Type {
-	case model.Practice:
+	if match.Type == "practice" {
 		packet[6] = 1
-	case model.Qualification:
+	} else if match.Type == "qualification" {
 		packet[6] = 2
-	case model.Playoff:
+	} else if match.Type == "elimination" {
 		packet[6] = 3
-	default:
+	} else {
 		packet[6] = 0
 	}
 
 	// Match number.
-	packet[7] = byte(match.TypeOrder >> 8)
-	packet[8] = byte(match.TypeOrder & 0xff)
+	if match.Type == "practice" || match.Type == "qualification" {
+		matchNumber, _ := strconv.Atoi(match.DisplayName)
+		packet[7] = byte(matchNumber >> 8)
+		packet[8] = byte(matchNumber & 0xff)
+	} else if match.Type == "elimination" {
+		// E.g. Quarter-final 3, match 1 will be numbered 431.
+		matchNumber := match.ElimRound*100 + match.ElimGroup*10 + match.ElimInstance
+		packet[7] = byte(matchNumber >> 8)
+		packet[8] = byte(matchNumber & 0xff)
+	} else {
+		packet[7] = 0
+		packet[8] = 1
+	}
 	packet[9] = 1 // Match repeat number
 
 	// Current time.
@@ -221,9 +223,15 @@ func (dsConn *DriverStationConnection) encodeControlPacket(arena *Arena) [22]byt
 	// Remaining number of seconds in match.
 	var matchSecondsRemaining int
 	switch arena.MatchState {
-	case PreMatch, TimeoutActive, PostTimeout:
+	case PreMatch:
+		fallthrough
+	case TimeoutActive:
+		fallthrough
+	case PostTimeout:
 		matchSecondsRemaining = game.MatchTiming.AutoDurationSec
-	case StartMatch, AutoPeriod:
+	case StartMatch:
+		fallthrough
+	case AutoPeriod:
 		matchSecondsRemaining = game.MatchTiming.AutoDurationSec - int(arena.MatchTimeSec())
 	case PausePeriod:
 		matchSecondsRemaining = game.MatchTiming.TeleopDurationSec

@@ -7,47 +7,19 @@ package plc
 
 import (
 	"fmt"
-	"github.com/Team254/cheesy-arena/websocket"
+	"github.com/Team254/cheesy-arena-lite/websocket"
 	"github.com/goburrow/modbus"
 	"log"
 	"strings"
 	"time"
 )
 
-type Plc interface {
-	SetAddress(address string)
-	IsEnabled() bool
-	IsHealthy() bool
-	IoChangeNotifier() *websocket.Notifier
-	Run()
-	GetArmorBlockStatuses() map[string]bool
-	GetFieldEStop() bool
-	GetTeamEStops() ([3]bool, [3]bool)
-	GetTeamAStops() ([3]bool, [3]bool)
-	GetEthernetConnected() ([3]bool, [3]bool)
-	ResetMatch()
-	SetStackLights(red, blue, orange, green bool)
-	SetStackBuzzer(state bool)
-	SetFieldResetLight(state bool)
-	GetCycleState(max, index, duration int) bool
-	GetInputNames() []string
-	GetRegisterNames() []string
-	GetCoilNames() []string
-	GetAmpButtons() (bool, bool, bool, bool)
-	GetAmpSpeakerNoteCounts() (int, int, int, int)
-	SetSpeakerMotors(state bool)
-	SetSpeakerLights(redState, blueState bool)
-	SetSubwooferCountdown(redState, blueState bool)
-	SetAmpLights(redLow, redHigh, redCoop, blueLow, blueHigh, blueCoop bool)
-	SetPostMatchSubwooferLights(state bool)
-}
-
-type ModbusPlc struct {
+type Plc struct {
+	IsHealthy        bool
+	IoChangeNotifier *websocket.Notifier
 	address          string
 	handler          *modbus.TCPClientHandler
 	client           modbus.Client
-	isHealthy        bool
-	ioChangeNotifier *websocket.Notifier
 	inputs           [inputCount]bool
 	registers        [registerCount]uint16
 	coils            [coilCount]bool
@@ -71,29 +43,19 @@ const (
 type input int
 
 const (
-	fieldEStop input = iota
-	red1EStop
-	red1AStop
-	red2EStop
-	red2AStop
-	red3EStop
-	red3AStop
-	blue1EStop
-	blue1AStop
-	blue2EStop
-	blue2AStop
-	blue3EStop
-	blue3AStop
+	fieldEstop input = iota
+	redEstop1
+	redEstop2
+	redEstop3
+	blueEstop1
+	blueEstop2
+	blueEstop3
 	redConnected1
 	redConnected2
 	redConnected3
 	blueConnected1
 	blueConnected2
 	blueConnected3
-	redAmplify
-	redCoop
-	blueAmplify
-	blueCoop
 	inputCount
 )
 
@@ -104,11 +66,6 @@ type register int
 
 const (
 	fieldIoConnection register = iota
-	redSpeaker
-	blueSpeaker
-	redAmp
-	blueAmp
-	miscounts
 	registerCount
 )
 
@@ -126,18 +83,6 @@ const (
 	stackLightBlue
 	stackLightBuzzer
 	fieldResetLight
-	speakerMotors
-	redSpeakerLight
-	blueSpeakerLight
-	redSubwooferCountdown
-	blueSubwooferCountdown
-	redAmpLightLow
-	redAmpLightHigh
-	redAmpLightCoop
-	blueAmpLightLow
-	blueAmpLightHigh
-	blueAmpLightCoop
-	postMatchSubwooferLights
 	coilCount
 )
 
@@ -149,62 +94,74 @@ type armorBlock int
 const (
 	redDs armorBlock = iota
 	blueDs
-	redIoLink
-	blueIoLink
 	armorBlockCount
 )
 
-func (plc *ModbusPlc) SetAddress(address string) {
+func (plc *Plc) SetAddress(address string) {
 	plc.address = address
 	plc.resetConnection()
 
-	if plc.ioChangeNotifier == nil {
+	if plc.IoChangeNotifier == nil {
 		// Register a notifier that listeners can subscribe to to get websocket updates about I/O value changes.
-		plc.ioChangeNotifier = websocket.NewNotifier("plcIoChange", plc.generateIoChangeMessage)
+		plc.IoChangeNotifier = websocket.NewNotifier("plcIoChange", plc.generateIoChangeMessage)
 	}
 }
 
 // Returns true if the PLC is enabled in the configurations.
-func (plc *ModbusPlc) IsEnabled() bool {
+func (plc *Plc) IsEnabled() bool {
 	return plc.address != ""
 }
 
-// Returns true if the PLC is connected and responding to requests.
-func (plc *ModbusPlc) IsHealthy() bool {
-	return plc.isHealthy
-}
-
-// Returns a notifier which fires whenever the I/O values change.
-func (plc *ModbusPlc) IoChangeNotifier() *websocket.Notifier {
-	return plc.ioChangeNotifier
-}
-
 // Loops indefinitely to read inputs from and write outputs to PLC.
-func (plc *ModbusPlc) Run() {
+func (plc *Plc) Run() {
 	for {
 		if plc.handler == nil {
 			if !plc.IsEnabled() {
 				// No PLC is configured; just allow the loop to continue to simulate inputs and outputs.
-				plc.isHealthy = false
+				plc.IsHealthy = false
 			} else {
 				err := plc.connect()
 				if err != nil {
 					log.Printf("PLC error: %v", err)
 					time.Sleep(time.Second * plcRetryIntevalSec)
-					plc.isHealthy = false
+					plc.IsHealthy = false
 					continue
 				}
 			}
 		}
 
 		startTime := time.Now()
-		plc.update()
+
+		if plc.handler != nil {
+			isHealthy := true
+			isHealthy = isHealthy && plc.writeCoils()
+			isHealthy = isHealthy && plc.readInputs()
+			isHealthy = isHealthy && plc.readRegisters()
+			if !isHealthy {
+				plc.resetConnection()
+			}
+			plc.IsHealthy = isHealthy
+		}
+
+		plc.cycleCounter++
+		if plc.cycleCounter == cycleCounterMax {
+			plc.cycleCounter = 0
+		}
+
+		// Detect any changes in input or output and notify listeners if so.
+		if plc.inputs != plc.oldInputs || plc.registers != plc.oldRegisters || plc.coils != plc.oldCoils {
+			plc.IoChangeNotifier.Notify()
+			plc.oldInputs = plc.inputs
+			plc.oldRegisters = plc.registers
+			plc.oldCoils = plc.coils
+		}
+
 		time.Sleep(time.Until(startTime.Add(time.Millisecond * plcLoopPeriodMs)))
 	}
 }
 
 // Returns a map of ArmorBlocks I/O module names to whether they are connected properly.
-func (plc *ModbusPlc) GetArmorBlockStatuses() map[string]bool {
+func (plc *Plc) GetArmorBlockStatuses() map[string]bool {
 	statuses := make(map[string]bool, armorBlockCount)
 	for i := 0; i < int(armorBlockCount); i++ {
 		statuses[strings.Title(armorBlock(i).String())] = plc.registers[fieldIoConnection]&(1<<i) > 0
@@ -213,36 +170,26 @@ func (plc *ModbusPlc) GetArmorBlockStatuses() map[string]bool {
 }
 
 // Returns the state of the field emergency stop button (true if e-stop is active).
-func (plc *ModbusPlc) GetFieldEStop() bool {
-	return !plc.inputs[fieldEStop]
+func (plc *Plc) GetFieldEstop() bool {
+	return plc.IsEnabled() && !plc.inputs[fieldEstop]
 }
 
-// Returns the state of the red and blue driver station emergency stop buttons (true if E-stop is active).
-func (plc *ModbusPlc) GetTeamEStops() ([3]bool, [3]bool) {
-	var redEStops, blueEStops [3]bool
-	redEStops[0] = !plc.inputs[red1EStop]
-	redEStops[1] = !plc.inputs[red2EStop]
-	redEStops[2] = !plc.inputs[red3EStop]
-	blueEStops[0] = !plc.inputs[blue1EStop]
-	blueEStops[1] = !plc.inputs[blue2EStop]
-	blueEStops[2] = !plc.inputs[blue3EStop]
-	return redEStops, blueEStops
-}
-
-// Returns the state of the red and blue driver station autonomous stop buttons (true if A-stop is active).
-func (plc *ModbusPlc) GetTeamAStops() ([3]bool, [3]bool) {
-	var redAStops, blueAStops [3]bool
-	redAStops[0] = !plc.inputs[red1AStop]
-	redAStops[1] = !plc.inputs[red2AStop]
-	redAStops[2] = !plc.inputs[red3AStop]
-	blueAStops[0] = !plc.inputs[blue1AStop]
-	blueAStops[1] = !plc.inputs[blue2AStop]
-	blueAStops[2] = !plc.inputs[blue3AStop]
-	return redAStops, blueAStops
+// Returns the state of the red and blue driver station emergency stop buttons (true if e-stop is active).
+func (plc *Plc) GetTeamEstops() ([3]bool, [3]bool) {
+	var redEstops, blueEstops [3]bool
+	if plc.IsEnabled() {
+		redEstops[0] = !plc.inputs[redEstop1]
+		redEstops[1] = !plc.inputs[redEstop2]
+		redEstops[2] = !plc.inputs[redEstop3]
+		blueEstops[0] = !plc.inputs[blueEstop1]
+		blueEstops[1] = !plc.inputs[blueEstop2]
+		blueEstops[2] = !plc.inputs[blueEstop3]
+	}
+	return redEstops, blueEstops
 }
 
 // Returns whether anything is connected to each station's designated Ethernet port on the SCC.
-func (plc *ModbusPlc) GetEthernetConnected() ([3]bool, [3]bool) {
+func (plc *Plc) GetEthernetConnected() ([3]bool, [3]bool) {
 	return [3]bool{
 			plc.inputs[redConnected1],
 			plc.inputs[redConnected2],
@@ -256,13 +203,13 @@ func (plc *ModbusPlc) GetEthernetConnected() ([3]bool, [3]bool) {
 }
 
 // Resets the internal state of the PLC to start a new match.
-func (plc *ModbusPlc) ResetMatch() {
+func (plc *Plc) ResetMatch() {
 	plc.coils[matchReset] = true
 	plc.matchResetCycles = 0
 }
 
 // Sets the on/off state of the stack lights on the scoring table.
-func (plc *ModbusPlc) SetStackLights(red, blue, orange, green bool) {
+func (plc *Plc) SetStackLights(red, blue, orange, green bool) {
 	plc.coils[stackLightRed] = red
 	plc.coils[stackLightBlue] = blue
 	plc.coils[stackLightOrange] = orange
@@ -270,20 +217,20 @@ func (plc *ModbusPlc) SetStackLights(red, blue, orange, green bool) {
 }
 
 // Triggers the "match ready" chime if the state is true.
-func (plc *ModbusPlc) SetStackBuzzer(state bool) {
+func (plc *Plc) SetStackBuzzer(state bool) {
 	plc.coils[stackLightBuzzer] = state
 }
 
 // Sets the on/off state of the field reset light.
-func (plc *ModbusPlc) SetFieldResetLight(state bool) {
+func (plc *Plc) SetFieldResetLight(state bool) {
 	plc.coils[fieldResetLight] = state
 }
 
-func (plc *ModbusPlc) GetCycleState(max, index, duration int) bool {
+func (plc *Plc) GetCycleState(max, index, duration int) bool {
 	return plc.cycleCounter/duration%max == index
 }
 
-func (plc *ModbusPlc) GetInputNames() []string {
+func (plc *Plc) GetInputNames() []string {
 	inputNames := make([]string, inputCount)
 	for i := range plc.inputs {
 		inputNames[i] = input(i).String()
@@ -291,7 +238,7 @@ func (plc *ModbusPlc) GetInputNames() []string {
 	return inputNames
 }
 
-func (plc *ModbusPlc) GetRegisterNames() []string {
+func (plc *Plc) GetRegisterNames() []string {
 	registerNames := make([]string, registerCount)
 	for i := range plc.registers {
 		registerNames[i] = register(i).String()
@@ -299,7 +246,7 @@ func (plc *ModbusPlc) GetRegisterNames() []string {
 	return registerNames
 }
 
-func (plc *ModbusPlc) GetCoilNames() []string {
+func (plc *Plc) GetCoilNames() []string {
 	coilNames := make([]string, coilCount)
 	for i := range plc.coils {
 		coilNames[i] = coil(i).String()
@@ -307,53 +254,7 @@ func (plc *ModbusPlc) GetCoilNames() []string {
 	return coilNames
 }
 
-// Returns the state of the red amplify, red co-op, blue amplify, and blue co-op buttons, respectively.
-func (plc *ModbusPlc) GetAmpButtons() (bool, bool, bool, bool) {
-	return plc.inputs[redAmplify], plc.inputs[redCoop], plc.inputs[blueAmplify], plc.inputs[blueCoop]
-}
-
-// Returns the red amp, red speaker, blue amp, and blue speaker note counts, respectively.
-func (plc *ModbusPlc) GetAmpSpeakerNoteCounts() (int, int, int, int) {
-	return int(plc.registers[redAmp]),
-		int(plc.registers[redSpeaker]),
-		int(plc.registers[blueAmp]),
-		int(plc.registers[blueSpeaker])
-}
-
-// Sets the on/off state of the serializer motors within each speaker.
-func (plc *ModbusPlc) SetSpeakerMotors(state bool) {
-	plc.coils[speakerMotors] = state
-}
-
-// Sets the state of the amplification lights on the red and blue speakers.
-func (plc *ModbusPlc) SetSpeakerLights(redState, blueState bool) {
-	plc.coils[redSpeakerLight] = redState
-	plc.coils[blueSpeakerLight] = blueState
-}
-
-// Sets the state of the red and blue subwoofer countdown lights. When the state is set to true, the lights light up and
-// begin the ten-second coundown sequence. When set to false before the countdown is complete, the lights will turn off.
-func (plc *ModbusPlc) SetSubwooferCountdown(redState, blueState bool) {
-	plc.coils[redSubwooferCountdown] = redState
-	plc.coils[blueSubwooferCountdown] = blueState
-}
-
-// Sets the state of the red and blue amp lights.
-func (plc *ModbusPlc) SetAmpLights(redLow, redHigh, redCoop, blueLow, blueHigh, blueCoop bool) {
-	plc.coils[redAmpLightLow] = redLow
-	plc.coils[redAmpLightHigh] = redHigh
-	plc.coils[redAmpLightCoop] = redCoop
-	plc.coils[blueAmpLightLow] = blueLow
-	plc.coils[blueAmpLightHigh] = blueHigh
-	plc.coils[blueAmpLightCoop] = blueCoop
-}
-
-// Sets the state of the post-match subwoofer lights.
-func (plc *ModbusPlc) SetPostMatchSubwooferLights(state bool) {
-	plc.coils[postMatchSubwooferLights] = state
-}
-
-func (plc *ModbusPlc) connect() error {
+func (plc *Plc) connect() error {
 	address := fmt.Sprintf("%s:%d", plc.address, modbusPort)
 	handler := modbus.NewTCPClientHandler(address)
 	handler.Timeout = 1 * time.Second
@@ -370,41 +271,14 @@ func (plc *ModbusPlc) connect() error {
 	return nil
 }
 
-func (plc *ModbusPlc) resetConnection() {
+func (plc *Plc) resetConnection() {
 	if plc.handler != nil {
 		plc.handler.Close()
 		plc.handler = nil
 	}
 }
 
-// Performs a single iteration of reading inputs from and writing outputs to the PLC.
-func (plc *ModbusPlc) update() {
-	if plc.handler != nil {
-		isHealthy := true
-		isHealthy = isHealthy && plc.writeCoils()
-		isHealthy = isHealthy && plc.readInputs()
-		isHealthy = isHealthy && plc.readRegisters()
-		if !isHealthy {
-			plc.resetConnection()
-		}
-		plc.isHealthy = isHealthy
-	}
-
-	plc.cycleCounter++
-	if plc.cycleCounter == cycleCounterMax {
-		plc.cycleCounter = 0
-	}
-
-	// Detect any changes in input or output and notify listeners if so.
-	if plc.inputs != plc.oldInputs || plc.registers != plc.oldRegisters || plc.coils != plc.oldCoils {
-		plc.ioChangeNotifier.Notify()
-		plc.oldInputs = plc.inputs
-		plc.oldRegisters = plc.registers
-		plc.oldCoils = plc.coils
-	}
-}
-
-func (plc *ModbusPlc) readInputs() bool {
+func (plc *Plc) readInputs() bool {
 	if len(plc.inputs) == 0 {
 		return true
 	}
@@ -423,7 +297,7 @@ func (plc *ModbusPlc) readInputs() bool {
 	return true
 }
 
-func (plc *ModbusPlc) readRegisters() bool {
+func (plc *Plc) readRegisters() bool {
 	if len(plc.registers) == 0 {
 		return true
 	}
@@ -443,7 +317,7 @@ func (plc *ModbusPlc) readRegisters() bool {
 	return true
 }
 
-func (plc *ModbusPlc) writeCoils() bool {
+func (plc *Plc) writeCoils() bool {
 	// Send a heartbeat to the PLC so that it can disable outputs if the connection is lost.
 	plc.coils[heartbeat] = true
 
@@ -462,7 +336,7 @@ func (plc *ModbusPlc) writeCoils() bool {
 	return true
 }
 
-func (plc *ModbusPlc) generateIoChangeMessage() any {
+func (plc *Plc) generateIoChangeMessage() interface{} {
 	return &struct {
 		Inputs    []bool
 		Registers []uint16

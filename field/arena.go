@@ -7,17 +7,14 @@ package field
 
 import (
 	"fmt"
+	"github.com/Team254/cheesy-arena-lite/bracket"
+	"github.com/Team254/cheesy-arena-lite/game"
+	"github.com/Team254/cheesy-arena-lite/model"
+	"github.com/Team254/cheesy-arena-lite/network"
+	"github.com/Team254/cheesy-arena-lite/partner"
+	"github.com/Team254/cheesy-arena-lite/plc"
 	"log"
-	"math"
-	"reflect"
 	"time"
-
-	"github.com/Team254/cheesy-arena/game"
-	"github.com/Team254/cheesy-arena/model"
-	"github.com/Team254/cheesy-arena/network"
-	"github.com/Team254/cheesy-arena/partner"
-	"github.com/Team254/cheesy-arena/playoff"
-	"github.com/Team254/cheesy-arena/plc"
 )
 
 const (
@@ -27,7 +24,6 @@ const (
 	matchEndScoreDwellSec    = 3
 	postTimeoutSec           = 4
 	preLoadNextMatchDelaySec = 5
-	scheduledBreakDelaySec   = 5
 	earlyLateThresholdMin    = 2.5
 	MaxMatchGapMin           = 20
 )
@@ -51,73 +47,52 @@ type Arena struct {
 	Database         *model.Database
 	EventSettings    *model.EventSettings
 	accessPoint      network.AccessPoint
+	accessPoint2     network.AccessPoint
 	networkSwitch    *network.Switch
 	Plc              plc.Plc
 	TbaClient        *partner.TbaClient
-	NexusClient      *partner.NexusClient
 	AllianceStations map[string]*AllianceStation
 	Displays         map[string]*Display
-	TeamSigns        *TeamSigns
-	ScoringPanelRegistry
 	ArenaNotifiers
 	MatchState
-	lastMatchState                    MatchState
-	CurrentMatch                      *model.Match
-	MatchStartTime                    time.Time
-	LastMatchTimeSec                  float64
-	RedRealtimeScore                  *RealtimeScore
-	BlueRealtimeScore                 *RealtimeScore
-	lastDsPacketTime                  time.Time
-	lastPeriodicTaskTime              time.Time
-	EventStatus                       EventStatus
-	FieldReset                        bool
-	AudienceDisplayMode               string
-	SavedMatch                        *model.Match
-	SavedMatchResult                  *model.MatchResult
-	SavedRankings                     game.Rankings
-	AllianceStationDisplayMode        string
-	AllianceSelectionAlliances        []model.Alliance
-	AllianceSelectionRankedTeams      []model.AllianceSelectionRankedTeam
-	AllianceSelectionShowTimer        bool
-	AllianceSelectionTimeRemainingSec int
-	PlayoffTournament                 *playoff.PlayoffTournament
-	LowerThird                        *model.LowerThird
-	ShowLowerThird                    bool
-	MuteMatchSounds                   bool
-	matchAborted                      bool
-	soundsPlayed                      map[*game.MatchSound]struct{}
-	breakDescription                  string
-	preloadedTeams                    *[6]*model.Team
+	lastMatchState             MatchState
+	CurrentMatch               *model.Match
+	MatchStartTime             time.Time
+	LastMatchTimeSec           float64
+	RedScore                   *game.Score
+	BlueScore                  *game.Score
+	lastDsPacketTime           time.Time
+	lastPeriodicTaskTime       time.Time
+	EventStatus                EventStatus
+	FieldVolunteers            bool
+	FieldReset                 bool
+	AudienceDisplayMode        string
+	SavedMatch                 *model.Match
+	SavedMatchResult           *model.MatchResult
+	SavedRankings              game.Rankings
+	AllianceStationDisplayMode string
+	AllianceSelectionAlliances []model.Alliance
+	PlayoffBracket             *bracket.Bracket
+	LowerThird                 *model.LowerThird
+	ShowLowerThird             bool
+	MuteMatchSounds            bool
+	matchAborted               bool
+	soundsPlayed               map[*game.MatchSound]struct{}
 }
 
 type AllianceStation struct {
-	DsConn     *DriverStationConnection
-	Ethernet   bool
-	AStop      bool
-	EStop      bool
-	Bypass     bool
-	Team       *model.Team
-	WifiStatus network.TeamWifiStatus
-	aStopReset bool
+	DsConn   *DriverStationConnection
+	Ethernet bool
+	Astop    bool
+	Estop    bool
+	Bypass   bool
+	Team     *model.Team
 }
 
 // Creates the arena and sets it to its initial state.
 func NewArena(dbPath string) (*Arena, error) {
 	arena := new(Arena)
 	arena.configureNotifiers()
-	arena.Plc = new(plc.ModbusPlc)
-
-	arena.AllianceStations = make(map[string]*AllianceStation)
-	arena.AllianceStations["R1"] = new(AllianceStation)
-	arena.AllianceStations["R2"] = new(AllianceStation)
-	arena.AllianceStations["R3"] = new(AllianceStation)
-	arena.AllianceStations["B1"] = new(AllianceStation)
-	arena.AllianceStations["B2"] = new(AllianceStation)
-	arena.AllianceStations["B3"] = new(AllianceStation)
-
-	arena.Displays = make(map[string]*Display)
-
-	arena.TeamSigns = NewTeamSigns()
 
 	var err error
 	arena.Database, err = model.OpenDatabase(dbPath)
@@ -129,7 +104,15 @@ func NewArena(dbPath string) (*Arena, error) {
 		return nil, err
 	}
 
-	arena.ScoringPanelRegistry.initialize()
+	arena.AllianceStations = make(map[string]*AllianceStation)
+	arena.AllianceStations["R1"] = new(AllianceStation)
+	arena.AllianceStations["R2"] = new(AllianceStation)
+	arena.AllianceStations["R3"] = new(AllianceStation)
+	arena.AllianceStations["B1"] = new(AllianceStation)
+	arena.AllianceStations["B2"] = new(AllianceStation)
+	arena.AllianceStations["B3"] = new(AllianceStation)
+
+	arena.Displays = make(map[string]*Display)
 
 	// Load empty match as current.
 	arena.MatchState = PreMatch
@@ -155,33 +138,22 @@ func (arena *Arena) LoadSettings() error {
 	arena.EventSettings = settings
 
 	// Initialize the components that depend on settings.
-	arena.TeamSigns.Red1.SetAddress(settings.TeamSignRed1Address)
-	arena.TeamSigns.Red2.SetAddress(settings.TeamSignRed2Address)
-	arena.TeamSigns.Red3.SetAddress(settings.TeamSignRed3Address)
-	arena.TeamSigns.RedTimer.SetAddress(settings.TeamSignRedTimerAddress)
-	arena.TeamSigns.Blue1.SetAddress(settings.TeamSignBlue1Address)
-	arena.TeamSigns.Blue2.SetAddress(settings.TeamSignBlue2Address)
-	arena.TeamSigns.Blue3.SetAddress(settings.TeamSignBlue3Address)
-	arena.TeamSigns.BlueTimer.SetAddress(settings.TeamSignBlueTimerAddress)
-	accessPointWifiStatuses := [6]*network.TeamWifiStatus{
-		&arena.AllianceStations["R1"].WifiStatus,
-		&arena.AllianceStations["R2"].WifiStatus,
-		&arena.AllianceStations["R3"].WifiStatus,
-		&arena.AllianceStations["B1"].WifiStatus,
-		&arena.AllianceStations["B2"].WifiStatus,
-		&arena.AllianceStations["B3"].WifiStatus,
-	}
-	arena.accessPoint.SetSettings(
-		settings.ApAddress,
-		settings.ApPassword,
-		settings.ApChannel,
-		settings.NetworkSecurityEnabled,
-		accessPointWifiStatuses,
-	)
+	arena.accessPoint.SetSettings(settings.ApAddress, settings.ApUsername, settings.ApPassword,
+		settings.ApTeamChannel, settings.ApAdminChannel, settings.ApAdminWpaKey, settings.NetworkSecurityEnabled)
+	arena.accessPoint2.SetSettings(settings.Ap2Address, settings.Ap2Username, settings.Ap2Password,
+		settings.Ap2TeamChannel, 0, "", settings.NetworkSecurityEnabled)
 	arena.networkSwitch = network.NewSwitch(settings.SwitchAddress, settings.SwitchPassword)
 	arena.Plc.SetAddress(settings.PlcAddress)
 	arena.TbaClient = partner.NewTbaClient(settings.TbaEventCode, settings.TbaSecretId, settings.TbaSecret)
-	arena.NexusClient = partner.NewNexusClient(settings.TbaEventCode)
+
+	if arena.EventSettings.NetworkSecurityEnabled && arena.MatchState == PreMatch {
+		if err = arena.accessPoint.ConfigureAdminWifi(); err != nil {
+			log.Printf("Failed to configure admin WiFi: %s", err.Error())
+		}
+		if err = arena.accessPoint2.ConfigureAdminWifi(); err != nil {
+			log.Printf("Failed to configure admin WiFi: %s", err.Error())
+		}
+	}
 
 	game.MatchTiming.WarmupDurationSec = settings.WarmupDurationSec
 	game.MatchTiming.AutoDurationSec = settings.AutoDurationSec
@@ -191,44 +163,40 @@ func (arena *Arena) LoadSettings() error {
 	game.UpdateMatchSounds()
 	arena.MatchTimingNotifier.Notify()
 
-	game.MelodyBonusThresholdWithoutCoop = settings.MelodyBonusThresholdWithoutCoop
-	game.MelodyBonusThresholdWithCoop = settings.MelodyBonusThresholdWithCoop
-	game.AmplificationNoteLimit = settings.AmplificationNoteLimit
-	game.AmplificationDurationSec = settings.AmplificationDurationSec
-
-	// Reconstruct the playoff tournament in memory.
-	if err = arena.CreatePlayoffTournament(); err != nil {
+	// Reconstruct the playoff bracket in memory.
+	if err = arena.CreatePlayoffBracket(); err != nil {
 		return err
 	}
-	if err = arena.UpdatePlayoffTournament(); err != nil {
+	if err = arena.UpdatePlayoffBracket(nil); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// Constructs an empty playoff tournament in memory, based only on the number of alliances.
-func (arena *Arena) CreatePlayoffTournament() error {
+// Constructs an empty playoff bracket in memory, based only on the number of alliances.
+func (arena *Arena) CreatePlayoffBracket() error {
 	var err error
-	arena.PlayoffTournament, err = playoff.NewPlayoffTournament(
-		arena.EventSettings.PlayoffType, arena.EventSettings.NumPlayoffAlliances,
-	)
+	switch arena.EventSettings.ElimType {
+	case "single":
+		arena.PlayoffBracket, err = bracket.NewSingleEliminationBracket(arena.EventSettings.NumElimAlliances)
+	case "double":
+		arena.PlayoffBracket, err = bracket.NewDoubleEliminationBracket(arena.EventSettings.NumElimAlliances)
+	default:
+		err = fmt.Errorf("Invalid playoff type: %v", arena.EventSettings.ElimType)
+	}
 	return err
 }
 
-// Performs the one-time creation of all matches for the playoff tournament.
-func (arena *Arena) CreatePlayoffMatches(startTime time.Time) error {
-	return arena.PlayoffTournament.CreateMatchesAndBreaks(arena.Database, startTime)
-}
-
-// Traverses the playoff tournament rounds to assess winners and populate subsequent matches.
-func (arena *Arena) UpdatePlayoffTournament() error {
+// Traverses the in-memory playoff bracket to populate alliances, create matches, and assess winners. Does nothing if
+// the bracket has not been created.are
+func (arena *Arena) UpdatePlayoffBracket(startTime *time.Time) error {
 	alliances, err := arena.Database.GetAllAlliances()
 	if err != nil {
 		return err
 	}
 	if len(alliances) > 0 {
-		return arena.PlayoffTournament.UpdateMatches(arena.Database)
+		return arena.PlayoffBracket.Update(arena.Database, startTime)
 	}
 	return nil
 }
@@ -236,74 +204,45 @@ func (arena *Arena) UpdatePlayoffTournament() error {
 // Sets up the arena for the given match.
 func (arena *Arena) LoadMatch(match *model.Match) error {
 	if arena.MatchState != PreMatch {
-		return fmt.Errorf("cannot load match while there is a match still in progress or with results pending")
+		return fmt.Errorf("Cannot load match while there is a match still in progress or with results pending.")
 	}
 
 	arena.CurrentMatch = match
-
-	loadedByNexus := false
-	if match.ShouldAllowNexusSubstitution() && arena.EventSettings.NexusEnabled {
-		// Attempt to get the match lineup from Nexus for FRC.
-		lineup, err := arena.NexusClient.GetLineup(match.TbaMatchKey)
-		if err != nil {
-			log.Printf("Failed to load lineup from Nexus: %s", err.Error())
-		} else {
-			err = arena.SubstituteTeams(lineup[0], lineup[1], lineup[2], lineup[3], lineup[4], lineup[5])
-			if err != nil {
-				log.Printf("Failed to substitute teams using Nexus lineup; loading match normally: %s", err.Error())
-			} else {
-				log.Printf(
-					"Successfully loaded lineup for match %s from Nexus: %v", match.TbaMatchKey.String(), *lineup,
-				)
-				loadedByNexus = true
-			}
-		}
+	err := arena.assignTeam(match.Red1, "R1")
+	if err != nil {
+		return err
+	}
+	err = arena.assignTeam(match.Red2, "R2")
+	if err != nil {
+		return err
+	}
+	err = arena.assignTeam(match.Red3, "R3")
+	if err != nil {
+		return err
+	}
+	err = arena.assignTeam(match.Blue1, "B1")
+	if err != nil {
+		return err
+	}
+	err = arena.assignTeam(match.Blue2, "B2")
+	if err != nil {
+		return err
+	}
+	err = arena.assignTeam(match.Blue3, "B3")
+	if err != nil {
+		return err
 	}
 
-	if !loadedByNexus {
-		err := arena.assignTeam(match.Red1, "R1")
-		if err != nil {
-			return err
-		}
-		err = arena.assignTeam(match.Red2, "R2")
-		if err != nil {
-			return err
-		}
-		err = arena.assignTeam(match.Red3, "R3")
-		if err != nil {
-			return err
-		}
-		err = arena.assignTeam(match.Blue1, "B1")
-		if err != nil {
-			return err
-		}
-		err = arena.assignTeam(match.Blue2, "B2")
-		if err != nil {
-			return err
-		}
-		err = arena.assignTeam(match.Blue3, "B3")
-		if err != nil {
-			return err
-		}
+	arena.setupNetwork([6]*model.Team{arena.AllianceStations["R1"].Team, arena.AllianceStations["R2"].Team,
+		arena.AllianceStations["R3"].Team, arena.AllianceStations["B1"].Team, arena.AllianceStations["B2"].Team,
+		arena.AllianceStations["B3"].Team})
 
-		arena.setupNetwork(
-			[6]*model.Team{
-				arena.AllianceStations["R1"].Team,
-				arena.AllianceStations["R2"].Team,
-				arena.AllianceStations["R3"].Team,
-				arena.AllianceStations["B1"].Team,
-				arena.AllianceStations["B2"].Team,
-				arena.AllianceStations["B3"].Team,
-			},
-			false,
-		)
-	}
-
-	// Reset the arena state and realtime scores.
+	// Reset the arena state and game scores.
 	arena.soundsPlayed = make(map[*game.MatchSound]struct{})
-	arena.RedRealtimeScore = NewRealtimeScore()
-	arena.BlueRealtimeScore = NewRealtimeScore()
-	arena.ScoringPanelRegistry.resetScoreCommitted()
+	arena.RedScore = new(game.Score)
+	arena.BlueScore = new(game.Score)
+	arena.FieldVolunteers = false
+	arena.FieldReset = false
 	arena.Plc.ResetMatch()
 
 	// Notify any listeners about the new match.
@@ -311,18 +250,17 @@ func (arena *Arena) LoadMatch(match *model.Match) error {
 	arena.RealtimeScoreNotifier.Notify()
 	arena.AllianceStationDisplayMode = "match"
 	arena.AllianceStationDisplayModeNotifier.Notify()
-	arena.ScoringStatusNotifier.Notify()
 
 	return nil
 }
 
 // Sets a new test match containing no teams as the current match.
 func (arena *Arena) LoadTestMatch() error {
-	return arena.LoadMatch(&model.Match{Type: model.Test, ShortName: "T", LongName: "Test Match"})
+	return arena.LoadMatch(&model.Match{Type: "test", DisplayName: "Test Match"})
 }
 
 // Loads the first unplayed match of the current match type.
-func (arena *Arena) LoadNextMatch(startScheduledBreak bool) error {
+func (arena *Arena) LoadNextMatch() error {
 	nextMatch, err := arena.getNextMatch(false)
 	if err != nil {
 		return err
@@ -330,76 +268,38 @@ func (arena *Arena) LoadNextMatch(startScheduledBreak bool) error {
 	if nextMatch == nil {
 		return arena.LoadTestMatch()
 	}
-	err = arena.LoadMatch(nextMatch)
-	if err != nil {
-		return err
-	}
-
-	// Start the timeout timer if there is a scheduled break before this match.
-	if startScheduledBreak {
-		scheduledBreak, err := arena.Database.GetScheduledBreakByMatchTypeOrder(nextMatch.Type, nextMatch.TypeOrder)
-		if err != nil {
-			return err
-		}
-		if scheduledBreak != nil {
-			go func() {
-				time.Sleep(time.Second * scheduledBreakDelaySec)
-				_ = arena.StartTimeout(scheduledBreak.Description, scheduledBreak.DurationSec)
-			}()
-		}
-	}
-
-	return nil
+	return arena.LoadMatch(nextMatch)
 }
 
 // Assigns the given team to the given station, also substituting it into the match record.
-func (arena *Arena) SubstituteTeams(red1, red2, red3, blue1, blue2, blue3 int) error {
+func (arena *Arena) SubstituteTeam(teamId int, station string) error {
 	if !arena.CurrentMatch.ShouldAllowSubstitution() {
 		return fmt.Errorf("Can't substitute teams for qualification matches.")
 	}
-
-	if err := arena.validateTeams(red1, red2, red3, blue1, blue2, blue3); err != nil {
+	err := arena.assignTeam(teamId, station)
+	if err != nil {
 		return err
 	}
-	if err := arena.assignTeam(red1, "R1"); err != nil {
-		return err
+	switch station {
+	case "R1":
+		arena.CurrentMatch.Red1 = teamId
+	case "R2":
+		arena.CurrentMatch.Red2 = teamId
+	case "R3":
+		arena.CurrentMatch.Red3 = teamId
+	case "B1":
+		arena.CurrentMatch.Blue1 = teamId
+	case "B2":
+		arena.CurrentMatch.Blue2 = teamId
+	case "B3":
+		arena.CurrentMatch.Blue3 = teamId
 	}
-	if err := arena.assignTeam(red2, "R2"); err != nil {
-		return err
-	}
-	if err := arena.assignTeam(red3, "R3"); err != nil {
-		return err
-	}
-	if err := arena.assignTeam(blue1, "B1"); err != nil {
-		return err
-	}
-	if err := arena.assignTeam(blue2, "B2"); err != nil {
-		return err
-	}
-	if err := arena.assignTeam(blue3, "B3"); err != nil {
-		return err
-	}
-
-	arena.CurrentMatch.Red1 = red1
-	arena.CurrentMatch.Red2 = red2
-	arena.CurrentMatch.Red3 = red3
-	arena.CurrentMatch.Blue1 = blue1
-	arena.CurrentMatch.Blue2 = blue2
-	arena.CurrentMatch.Blue3 = blue3
-	arena.setupNetwork(
-		[6]*model.Team{
-			arena.AllianceStations["R1"].Team,
-			arena.AllianceStations["R2"].Team,
-			arena.AllianceStations["R3"].Team,
-			arena.AllianceStations["B1"].Team,
-			arena.AllianceStations["B2"].Team,
-			arena.AllianceStations["B3"].Team,
-		},
-		false,
-	)
+	arena.setupNetwork([6]*model.Team{arena.AllianceStations["R1"].Team, arena.AllianceStations["R2"].Team,
+		arena.AllianceStations["R3"].Team, arena.AllianceStations["B1"].Team, arena.AllianceStations["B2"].Team,
+		arena.AllianceStations["B3"].Team})
 	arena.MatchLoadNotifier.Notify()
 
-	if arena.CurrentMatch.Type != model.Test {
+	if arena.CurrentMatch.Type != "test" {
 		arena.Database.UpdateMatch(arena.CurrentMatch)
 	}
 	return nil
@@ -409,9 +309,9 @@ func (arena *Arena) SubstituteTeams(red1, red2, red3, blue1, blue2, blue3 int) e
 func (arena *Arena) StartMatch() error {
 	err := arena.checkCanStartMatch()
 	if err == nil {
-		// Save the match start time to the database for posterity.
+		// Save the match start time and game-specifc data to the database for posterity.
 		arena.CurrentMatch.StartedAt = time.Now()
-		if arena.CurrentMatch.Type != model.Test {
+		if arena.CurrentMatch.Type != "test" {
 			arena.Database.UpdateMatch(arena.CurrentMatch)
 		}
 		arena.updateCycleTime(arena.CurrentMatch.StartedAt)
@@ -419,7 +319,7 @@ func (arena *Arena) StartMatch() error {
 		// Save the missed packet count to subtract it from the running count.
 		for _, allianceStation := range arena.AllianceStations {
 			if allianceStation.DsConn != nil {
-				err = allianceStation.DsConn.signalMatchStart(arena.CurrentMatch, &allianceStation.WifiStatus)
+				err = allianceStation.DsConn.signalMatchStart(arena.CurrentMatch)
 				if err != nil {
 					log.Println(err)
 				}
@@ -441,7 +341,7 @@ func (arena *Arena) StartMatch() error {
 // Kills the current match or timeout if it is underway.
 func (arena *Arena) AbortMatch() error {
 	if arena.MatchState == PreMatch || arena.MatchState == PostMatch || arena.MatchState == PostTimeout {
-		return fmt.Errorf("cannot abort match when it is not in progress")
+		return fmt.Errorf("Cannot abort match when it is not in progress.")
 	}
 
 	if arena.MatchState == TimeoutActive {
@@ -465,7 +365,7 @@ func (arena *Arena) AbortMatch() error {
 // Clears out the match and resets the arena state unless there is a match underway.
 func (arena *Arena) ResetMatch() error {
 	if arena.MatchState != PostMatch && arena.MatchState != PreMatch {
-		return fmt.Errorf("cannot reset match while it is in progress")
+		return fmt.Errorf("Cannot reset match while it is in progress.")
 	}
 	arena.MatchState = PreMatch
 	arena.matchAborted = false
@@ -480,17 +380,15 @@ func (arena *Arena) ResetMatch() error {
 }
 
 // Starts a timeout of the given duration.
-func (arena *Arena) StartTimeout(description string, durationSec int) error {
+func (arena *Arena) StartTimeout(durationSec int) error {
 	if arena.MatchState != PreMatch {
-		return fmt.Errorf("cannot start timeout while there is a match still in progress or with results pending")
+		return fmt.Errorf("Cannot start timeout while there is a match still in progress or with results pending.")
 	}
 
 	game.MatchTiming.TimeoutDurationSec = durationSec
 	game.UpdateMatchSounds()
 	arena.soundsPlayed = make(map[*game.MatchSound]struct{})
 	arena.MatchTimingNotifier.Notify()
-	arena.breakDescription = description
-	arena.MatchLoadNotifier.Notify()
 	arena.MatchState = TimeoutActive
 	arena.MatchStartTime = time.Now()
 	arena.LastMatchTimeSec = -1
@@ -558,7 +456,6 @@ func (arena *Arena) Update() {
 			sendDsPacket = true
 		}
 		arena.Plc.ResetMatch()
-		arena.FieldReset = false
 	case WarmupPeriod:
 		auto = true
 		enabled = false
@@ -590,6 +487,9 @@ func (arena *Arena) Update() {
 			auto = false
 			enabled = true
 			sendDsPacket = true
+
+			// For 2020, the score calculation might change at this point without input due to Stage 1 activation.
+			arena.RealtimeScoreNotifier.Notify()
 		}
 	case TeleopPeriod:
 		auto = false
@@ -645,10 +545,8 @@ func (arena *Arena) Update() {
 	arena.handleSounds(matchTimeSec)
 
 	// Handle field sensors/lights/actuators.
-	arena.handlePlcInputOutput()
-
-	// Handle the team number / timer displays.
-	arena.TeamSigns.Update(arena)
+	arena.handlePlcInput()
+	arena.handlePlcOutput()
 
 	arena.LastMatchTimeSec = matchTimeSec
 	arena.lastMatchState = arena.MatchState
@@ -660,6 +558,7 @@ func (arena *Arena) Run() {
 	go arena.listenForDriverStations()
 	go arena.listenForDsUdpPackets()
 	go arena.accessPoint.Run()
+	go arena.accessPoint2.Run()
 	go arena.Plc.Run()
 
 	for {
@@ -674,29 +573,12 @@ func (arena *Arena) Run() {
 
 // Calculates the red alliance score summary for the given realtime snapshot.
 func (arena *Arena) RedScoreSummary() *game.ScoreSummary {
-	return arena.RedRealtimeScore.CurrentScore.Summarize(&arena.BlueRealtimeScore.CurrentScore)
+	return arena.RedScore.Summarize()
 }
 
 // Calculates the blue alliance score summary for the given realtime snapshot.
 func (arena *Arena) BlueScoreSummary() *game.ScoreSummary {
-	return arena.BlueRealtimeScore.CurrentScore.Summarize(&arena.RedRealtimeScore.CurrentScore)
-}
-
-// Checks that the given teams are present in the database, allowing team ID 0 which indicates an empty spot.
-func (arena *Arena) validateTeams(teamIds ...int) error {
-	for _, teamId := range teamIds {
-		if teamId == 0 {
-			continue
-		}
-		team, err := arena.Database.GetTeamById(teamId)
-		if err != nil {
-			return err
-		}
-		if team == nil {
-			return fmt.Errorf("Team %d is not present at the event.", teamId)
-		}
-	}
-	return nil
+	return arena.BlueScore.Summarize()
 }
 
 // Loads a team into an alliance station, cleaning up the previous team there if there is one.
@@ -705,9 +587,6 @@ func (arena *Arena) assignTeam(teamId int, station string) error {
 	if _, ok := arena.AllianceStations[station]; !ok {
 		return fmt.Errorf("Invalid alliance station '%s'.", station)
 	}
-
-	// Force the A-stop to be reset by the new team if it is already pressed (if the PLC is enabled).
-	arena.AllianceStations[station].aStopReset = !arena.Plc.IsEnabled()
 
 	// Do nothing if the station is already assigned to the requested team.
 	dsConn := arena.AllianceStations[station].DsConn
@@ -741,11 +620,11 @@ func (arena *Arena) assignTeam(teamId int, station string) error {
 
 // Returns the next match of the same type that is currently loaded, or nil if there are no more matches.
 func (arena *Arena) getNextMatch(excludeCurrent bool) (*model.Match, error) {
-	if arena.CurrentMatch.Type == model.Test {
+	if arena.CurrentMatch.Type == "test" {
 		return nil, nil
 	}
 
-	matches, err := arena.Database.GetMatchesByType(arena.CurrentMatch.Type, false)
+	matches, err := arena.Database.GetMatchesByType(arena.CurrentMatch.Type)
 	if err != nil {
 		return nil, err
 	}
@@ -775,9 +654,8 @@ func (arena *Arena) preLoadNextMatch() {
 	}
 
 	var teams [6]*model.Team
-	for i, teamId := range []int{
-		nextMatch.Red1, nextMatch.Red2, nextMatch.Red3, nextMatch.Blue1, nextMatch.Blue2, nextMatch.Blue3,
-	} {
+	for i, teamId := range []int{nextMatch.Red1, nextMatch.Red2, nextMatch.Red3, nextMatch.Blue1, nextMatch.Blue2,
+		nextMatch.Blue3} {
 		if teamId == 0 {
 			continue
 		}
@@ -785,26 +663,27 @@ func (arena *Arena) preLoadNextMatch() {
 			log.Printf("Failed to get model for Team %d while pre-loading next match: %s", teamId, err.Error())
 		}
 	}
-	arena.setupNetwork(teams, true)
-	arena.TeamSigns.SetNextMatchTeams(nextMatch)
+	arena.setupNetwork(teams)
 }
 
 // Asynchronously reconfigures the networking hardware for the new set of teams.
-func (arena *Arena) setupNetwork(teams [6]*model.Team, isPreload bool) {
-	if isPreload {
-		arena.preloadedTeams = &teams
-	} else if arena.preloadedTeams != nil {
-		preloadedTeams := *arena.preloadedTeams
-		arena.preloadedTeams = nil
-		if reflect.DeepEqual(teams, preloadedTeams) {
-			// Skip configuring the network; this is the same set of teams that was preloaded.
-			return
-		}
-	}
-
+func (arena *Arena) setupNetwork(teams [6]*model.Team) {
 	if arena.EventSettings.NetworkSecurityEnabled {
-		if err := arena.accessPoint.ConfigureTeamWifi(teams); err != nil {
-			log.Printf("Failed to configure team WiFi: %s", err.Error())
+		if arena.EventSettings.Ap2TeamChannel == 0 {
+			// Only one AP is being used.
+			if err := arena.accessPoint.ConfigureTeamWifi(teams); err != nil {
+				log.Printf("Failed to configure team WiFi: %s", err.Error())
+			}
+		} else {
+			// Two APs are being used. Configure the first for the red teams and the second for the blue teams.
+			if err := arena.accessPoint.ConfigureTeamWifi([6]*model.Team{teams[0], teams[1], teams[2], nil, nil,
+				nil}); err != nil {
+				log.Printf("Failed to configure red alliance WiFi: %s", err.Error())
+			}
+			if err := arena.accessPoint2.ConfigureTeamWifi([6]*model.Team{nil, nil, nil, teams[3], teams[4],
+				teams[5]}); err != nil {
+				log.Printf("Failed to configure blue alliance WiFi: %s", err.Error())
+			}
 		}
 		go func() {
 			if err := arena.networkSwitch.ConfigureTeamEthernet(teams); err != nil {
@@ -817,7 +696,7 @@ func (arena *Arena) setupNetwork(teams [6]*model.Team, isPreload bool) {
 // Returns nil if the match can be started, and an error otherwise.
 func (arena *Arena) checkCanStartMatch() error {
 	if arena.MatchState != PreMatch {
-		return fmt.Errorf("cannot start match while there is a match still in progress or with results pending")
+		return fmt.Errorf("Cannot start match while there is a match still in progress or with results pending.")
 	}
 
 	err := arena.checkAllianceStationsReady("R1", "R2", "R3", "B1", "B2", "B3")
@@ -826,15 +705,15 @@ func (arena *Arena) checkCanStartMatch() error {
 	}
 
 	if arena.Plc.IsEnabled() {
-		if !arena.Plc.IsHealthy() {
-			return fmt.Errorf("cannot start match while PLC is not healthy")
+		if !arena.Plc.IsHealthy {
+			return fmt.Errorf("Cannot start match while PLC is not healthy.")
 		}
-		if arena.Plc.GetFieldEStop() {
-			return fmt.Errorf("cannot start match while field emergency stop is active")
+		if arena.Plc.GetFieldEstop() {
+			return fmt.Errorf("Cannot start match while field emergency stop is active.")
 		}
 		for name, status := range arena.Plc.GetArmorBlockStatuses() {
 			if !status {
-				return fmt.Errorf("cannot start match while PLC ArmorBlock %q is not connected", name)
+				return fmt.Errorf("Cannot start match while PLC ArmorBlock '%s' is not connected.", name)
 			}
 		}
 	}
@@ -845,15 +724,12 @@ func (arena *Arena) checkCanStartMatch() error {
 func (arena *Arena) checkAllianceStationsReady(stations ...string) error {
 	for _, station := range stations {
 		allianceStation := arena.AllianceStations[station]
-		if allianceStation.EStop {
-			return fmt.Errorf("cannot start match while an emergency stop is active")
-		}
-		if !allianceStation.aStopReset {
-			return fmt.Errorf("cannot start match if an autonomous stop has not been reset since the previous match")
+		if allianceStation.Estop {
+			return fmt.Errorf("Cannot start match while an emergency stop is active.")
 		}
 		if !allianceStation.Bypass {
 			if allianceStation.DsConn == nil || !allianceStation.DsConn.RobotLinked {
-				return fmt.Errorf("cannot start match until all robots are connected or bypassed")
+				return fmt.Errorf("Cannot start match until all robots are connected or bypassed.")
 			}
 		}
 	}
@@ -866,10 +742,8 @@ func (arena *Arena) sendDsPacket(auto bool, enabled bool) {
 		dsConn := allianceStation.DsConn
 		if dsConn != nil {
 			dsConn.Auto = auto
-			dsConn.Enabled = enabled && !allianceStation.EStop && !(auto && allianceStation.AStop) &&
-				!allianceStation.Bypass
-			dsConn.EStop = allianceStation.EStop
-			dsConn.AStop = allianceStation.AStop
+			dsConn.Enabled = enabled && !allianceStation.Estop && !allianceStation.Astop && !allianceStation.Bypass
+			dsConn.Estop = allianceStation.Estop
 			err := dsConn.update(arena)
 			if err != nil {
 				log.Printf("Unable to send driver station packet for team %d.", allianceStation.Team.Id)
@@ -891,24 +765,19 @@ func (arena *Arena) getAssignedAllianceStation(teamId int) string {
 	return ""
 }
 
-// Updates the score given new input information from the field PLC, and actuates PLC outputs accordingly.
-func (arena *Arena) handlePlcInputOutput() {
-	if !arena.Plc.IsEnabled() {
-		return
-	}
-
-	// Handle PLC functions that are always active.
-	if arena.Plc.GetFieldEStop() && !arena.matchAborted {
+// Updates the score given new input information from the field PLC.
+func (arena *Arena) handlePlcInput() {
+	// Handle emergency stops.
+	if arena.Plc.GetFieldEstop() && arena.MatchTimeSec() > 0 && !arena.matchAborted {
 		arena.AbortMatch()
 	}
-	redEStops, blueEStops := arena.Plc.GetTeamEStops()
-	redAStops, blueAStops := arena.Plc.GetTeamAStops()
-	arena.handleTeamStop("R1", redEStops[0], redAStops[0])
-	arena.handleTeamStop("R2", redEStops[1], redAStops[1])
-	arena.handleTeamStop("R3", redEStops[2], redAStops[2])
-	arena.handleTeamStop("B1", blueEStops[0], blueAStops[0])
-	arena.handleTeamStop("B2", blueEStops[1], blueAStops[1])
-	arena.handleTeamStop("B3", blueEStops[2], blueAStops[2])
+	redEstops, blueEstops := arena.Plc.GetTeamEstops()
+	arena.handleEstop("R1", redEstops[0])
+	arena.handleEstop("R2", redEstops[1])
+	arena.handleEstop("R3", redEstops[2])
+	arena.handleEstop("B1", blueEstops[0])
+	arena.handleEstop("B2", blueEstops[1])
+	arena.handleEstop("B3", blueEstops[2])
 	redEthernets, blueEthernets := arena.Plc.GetEthernetConnected()
 	arena.AllianceStations["R1"].Ethernet = redEthernets[0]
 	arena.AllianceStations["R2"].Ethernet = redEthernets[1]
@@ -917,24 +786,15 @@ func (arena *Arena) handlePlcInputOutput() {
 	arena.AllianceStations["B2"].Ethernet = blueEthernets[1]
 	arena.AllianceStations["B3"].Ethernet = blueEthernets[2]
 
-	// Handle in-match PLC functions.
-	redScore := &arena.RedRealtimeScore.CurrentScore
-	oldRedScore := *redScore
-	oldRedAmplifiedTimeRemainingSec := arena.RedRealtimeScore.AmplifiedTimeRemainingSec
-	blueScore := &arena.BlueRealtimeScore.CurrentScore
-	oldBlueScore := *blueScore
-	oldBlueAmplifiedTimeRemainingSec := arena.BlueRealtimeScore.AmplifiedTimeRemainingSec
-	matchStartTime := arena.MatchStartTime
-	currentTime := time.Now()
-	teleopGracePeriod := matchStartTime.Add(
-		game.GetDurationToTeleopEnd() + game.SpeakerTeleopGracePeriodSec*time.Second,
-	)
-	inGracePeriod := arena.MatchState == PostMatch && currentTime.Before(teleopGracePeriod)
+	if arena.MatchState == PreMatch || arena.MatchState == PostMatch || arena.MatchState == TimeoutActive ||
+		arena.MatchState == PostTimeout {
+		// Don't do anything if we're outside the match, otherwise we may overwrite manual edits.
+		return
+	}
+}
 
-	redAllianceReady := arena.checkAllianceStationsReady("R1", "R2", "R3") == nil
-	blueAllianceReady := arena.checkAllianceStationsReady("B1", "B2", "B3") == nil
-
-	// Handle the evergreen PLC functions: stack lights, stack buzzer, and field reset light.
+// Updates the PLC's coils based on its inputs and the current scoring state.
+func (arena *Arena) handlePlcOutput() {
 	switch arena.MatchState {
 	case PreMatch:
 		if arena.lastMatchState != PreMatch {
@@ -946,113 +806,56 @@ func (arena *Arena) handlePlcInputOutput() {
 	case PostTimeout:
 		// Set the stack light state -- solid alliance color(s) if robots are not connected, solid orange if scores are
 		// not input, or blinking green if ready.
+		redAllianceReady := arena.checkAllianceStationsReady("R1", "R2", "R3") == nil
+		blueAllianceReady := arena.checkAllianceStationsReady("B1", "B2", "B3") == nil
 		greenStackLight := redAllianceReady && blueAllianceReady && arena.Plc.GetCycleState(2, 0, 2)
 		arena.Plc.SetStackLights(!redAllianceReady, !blueAllianceReady, false, greenStackLight)
 		arena.Plc.SetStackBuzzer(redAllianceReady && blueAllianceReady)
 
 		// Turn off lights if all teams become ready.
 		if redAllianceReady && blueAllianceReady {
-			arena.FieldReset = false
 			arena.Plc.SetFieldResetLight(false)
-			if arena.CurrentMatch.FieldReadyAt.IsZero() {
-				arena.CurrentMatch.FieldReadyAt = time.Now()
-			}
 		}
 	case PostMatch:
 		if arena.FieldReset {
 			arena.Plc.SetFieldResetLight(true)
 		}
-		scoreReady := arena.RedRealtimeScore.FoulsCommitted && arena.BlueRealtimeScore.FoulsCommitted &&
-			arena.alliancePostMatchScoreReady("red") && arena.alliancePostMatchScoreReady("blue")
-		arena.Plc.SetStackLights(false, false, !scoreReady, false)
-	case AutoPeriod, PausePeriod, TeleopPeriod:
-		arena.Plc.SetStackBuzzer(false)
-		arena.Plc.SetStackLights(!redAllianceReady, !blueAllianceReady, false, true)
-	}
+		arena.Plc.SetStackLights(false, false, false, false)
 
-	// Get all the game-specific inputs and update the score.
-	redAmplifyButton, redCoopButton, blueAmplifyButton, blueCoopButton := arena.Plc.GetAmpButtons()
-	redAmpNoteCount, redSpeakerNoteCount, blueAmpNoteCount, blueSpeakerNoteCount := arena.Plc.GetAmpSpeakerNoteCounts()
-	redAmpSpeaker := &arena.RedRealtimeScore.CurrentScore.AmpSpeaker
-	blueAmpSpeaker := &arena.BlueRealtimeScore.CurrentScore.AmpSpeaker
-	redAmpSpeaker.UpdateState(
-		redAmpNoteCount, redSpeakerNoteCount, redAmplifyButton, redCoopButton, matchStartTime, currentTime,
-	)
-	blueAmpSpeaker.UpdateState(
-		blueAmpNoteCount, blueSpeakerNoteCount, blueAmplifyButton, blueCoopButton, matchStartTime, currentTime,
-	)
-	redAmplifiedTimeRemaining := redAmpSpeaker.AmplifiedTimeRemaining(currentTime)
-	arena.RedRealtimeScore.AmplifiedTimeRemainingSec = int(math.Ceil(redAmplifiedTimeRemaining))
-	blueAmplifiedTimeRemaining := blueAmpSpeaker.AmplifiedTimeRemaining(currentTime)
-	arena.BlueRealtimeScore.AmplifiedTimeRemainingSec = int(math.Ceil(blueAmplifiedTimeRemaining))
-	if !oldRedScore.Equals(redScore) || !oldBlueScore.Equals(blueScore) ||
-		oldRedAmplifiedTimeRemainingSec != arena.RedRealtimeScore.AmplifiedTimeRemainingSec ||
-		oldBlueAmplifiedTimeRemainingSec != arena.BlueRealtimeScore.AmplifiedTimeRemainingSec {
-		arena.RealtimeScoreNotifier.Notify()
-	}
-
-	// Handle the amp outputs.
-	if arena.MatchState == AutoPeriod || arena.MatchState == PausePeriod || arena.MatchState == TeleopPeriod {
-		redLowAmpLight := redAmpSpeaker.BankedAmpNotes >= 1
-		redHighAmpLight := redAmpSpeaker.BankedAmpNotes >= 2
-		redCoopAmpLight := redAmpSpeaker.CoopActivated
-		if redAmplifiedTimeRemaining > 0 {
-			redLowAmpLight = int(redAmplifiedTimeRemaining*2)%2 == 0
-			redHighAmpLight = !redLowAmpLight
+		if arena.lastMatchState != PostMatch {
+			go func() {
+				time.Sleep(time.Second)
+			}()
 		}
-
-		blueLowAmpLight := blueAmpSpeaker.BankedAmpNotes >= 1
-		blueHighAmpLight := blueAmpSpeaker.BankedAmpNotes >= 2
-		blueCoopAmpLight := blueAmpSpeaker.CoopActivated
-		if blueAmplifiedTimeRemaining > 0 {
-			blueLowAmpLight = int(blueAmplifiedTimeRemaining*4)%2 == 0
-			blueHighAmpLight = !blueLowAmpLight
-		}
-
-		arena.Plc.SetAmpLights(
-			redLowAmpLight, redHighAmpLight, redCoopAmpLight, blueLowAmpLight, blueHighAmpLight, blueCoopAmpLight,
-		)
-	} else if arena.MatchState == PostMatch {
-		arena.Plc.SetAmpLights(false, false, false, false, false, false)
+	case AutoPeriod:
+		fallthrough
+	case PausePeriod:
+		fallthrough
+	case TeleopPeriod:
 	}
-
-	// Handle the speaker outputs.
-	arena.Plc.SetSpeakerMotors(
-		arena.MatchState == AutoPeriod || arena.MatchState == PausePeriod || arena.MatchState == TeleopPeriod ||
-			inGracePeriod,
-	)
-	arena.Plc.SetSpeakerLights(
-		redAmplifiedTimeRemaining > 0 && arena.MatchState != PostMatch,
-		blueAmplifiedTimeRemaining > 0 && arena.MatchState != PostMatch,
-	)
-
-	// Handle the subwoofer outputs.
-	arena.Plc.SetSubwooferCountdown(
-		redAmplifiedTimeRemaining > 0 && arena.MatchState != PostMatch,
-		blueAmplifiedTimeRemaining > 0 && arena.MatchState != PostMatch,
-	)
-	arena.Plc.SetPostMatchSubwooferLights(inGracePeriod)
 }
 
-func (arena *Arena) handleTeamStop(station string, eStopState, aStopState bool) {
+func (arena *Arena) handleEstop(station string, state bool) {
 	allianceStation := arena.AllianceStations[station]
-	if eStopState {
-		allianceStation.EStop = true
-	} else if arena.MatchTimeSec() == 0 {
-		// Keep the E-stop latched until the match is over.
-		allianceStation.EStop = false
-	}
-	if aStopState {
-		allianceStation.AStop = true
-	} else if arena.MatchState != AutoPeriod {
-		// Keep the A-stop latched until the autonomous period is over.
-		allianceStation.AStop = false
-		allianceStation.aStopReset = true
+	if state {
+		if arena.MatchState == AutoPeriod {
+			allianceStation.Astop = true
+		} else {
+			allianceStation.Estop = true
+		}
+	} else {
+		if arena.MatchState != AutoPeriod {
+			allianceStation.Astop = false
+		}
+		if arena.MatchTimeSec() == 0 {
+			// Don't reset the e-stop while a match is in progress.
+			allianceStation.Estop = false
+		}
 	}
 }
 
 func (arena *Arena) handleSounds(matchTimeSec float64) {
-	if arena.MatchState == PreMatch || arena.MatchState == TimeoutActive || arena.MatchState == PostTimeout {
+	if arena.MatchState == PreMatch {
 		// Only apply this logic during a match.
 		return
 	}
@@ -1060,6 +863,11 @@ func (arena *Arena) handleSounds(matchTimeSec float64) {
 	for _, sound := range game.MatchSounds {
 		if sound.MatchTimeSec < 0 {
 			// Skip sounds with negative timestamps; they are meant to only be triggered explicitly.
+			continue
+		}
+		if sound.Timeout && !(arena.MatchState == TimeoutActive || arena.MatchState == PostTimeout) ||
+			!sound.Timeout && (arena.MatchState == TimeoutActive || arena.MatchState == PostTimeout) {
+			// Skip timeout sounds if this is a regular match, and vice versa.
 			continue
 		}
 		if _, ok := arena.soundsPlayed[sound]; !ok {
@@ -1075,11 +883,6 @@ func (arena *Arena) playSound(name string) {
 	if !arena.MuteMatchSounds {
 		arena.PlaySoundNotifier.NotifyWithMessage(name)
 	}
-}
-
-func (arena *Arena) alliancePostMatchScoreReady(alliance string) bool {
-	numPanels := arena.ScoringPanelRegistry.GetNumPanels(alliance)
-	return numPanels > 0 && arena.ScoringPanelRegistry.GetNumScoreCommitted(alliance) >= numPanels
 }
 
 // Performs any actions that need to run at the interval specified by periodicTaskPeriodSec.

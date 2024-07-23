@@ -1,3 +1,0 @@
-Number,HasConnected,FtaNotes
-{{range $team := .}}{{$team.Id}},{{$team.HasConnected}},{{$team.FtaNotes}}
-{{end}},,

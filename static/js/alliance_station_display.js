@@ -43,8 +43,9 @@ var handleMatchLoad = function(data) {
       $("#teamNameText").attr("data-alliance-bg", station[0]).text(team.Nickname);
 
       var ranking = data.Rankings[team.Id];
-      if (ranking && data.Match.Type === matchTypeQualification) {
-        $("#teamRank").attr("data-alliance-bg", station[0]).text(ranking);
+      if (ranking && data.MatchType === "Qualification") {
+        var rankingText = ranking.Rank;
+        $("#teamRank").attr("data-alliance-bg", station[0]).text(rankingText);
       } else {
         $("#teamRank").attr("data-alliance-bg", station[0]).text("");
       }
@@ -54,21 +55,21 @@ var handleMatchLoad = function(data) {
       $("#teamRank").attr("data-alliance-bg", station[0]).text("");
     }
 
-    // Populate extra alliance info if this is a playoff match.
-    let playoffAlliance = data.Match.PlayoffRedAlliance;
+    // Populate extra alliance info if this is an elimination match.
+    let elimAlliance = data.Match.ElimRedAlliance;
     let offFieldTeams = data.RedOffFieldTeams;
     if (station[0] === "B") {
-      playoffAlliance = data.Match.PlayoffBlueAlliance;
+      elimAlliance = data.Match.ElimBlueAlliance;
       offFieldTeams = data.BlueOffFieldTeams;
     }
-    if (playoffAlliance > 0) {
-      let playoffAllianceInfo = `Alliance ${playoffAlliance}`;
+    if (elimAlliance > 0) {
+      let elimAllianceInfo = `Alliance ${elimAlliance}`;
       if (offFieldTeams.length) {
-        playoffAllianceInfo += `&emsp; Not on field: ${offFieldTeams.map(team => team.Id).join(", ")}`;
+        elimAllianceInfo += `&emsp; Not on field: ${offFieldTeams.map(team => team.Id).join(", ")}`;
       }
-      $("#playoffAllianceInfo").html(playoffAllianceInfo);
+      $("#elimAllianceInfo").html(elimAllianceInfo);
     } else {
-      $("#playoffAllianceInfo").text("");
+      $("#elimAllianceInfo").text("");
     }
   }
 };
@@ -120,12 +121,8 @@ var handleMatchTime = function(data) {
 
 // Handles a websocket message to update the match score.
 var handleRealtimeScore = function(data) {
-  $("#redScore").text(
-    data.Red.ScoreSummary.Score - data.Red.ScoreSummary.StagePoints
-  );
-  $("#blueScore").text(
-    data.Blue.ScoreSummary.Score - data.Blue.ScoreSummary.StagePoints
-  );
+  $("#redScore").text(data.Red.ScoreSummary.Score - data.Red.ScoreSummary.EndgamePoints);
+  $("#blueScore").text(data.Blue.ScoreSummary.Score - data.Blue.ScoreSummary.EndgamePoints);
 };
 
 $(function() {

@@ -6,8 +6,8 @@
 package web
 
 import (
-	"github.com/Team254/cheesy-arena/model"
-	"github.com/Team254/cheesy-arena/websocket"
+	"github.com/Team254/cheesy-arena-lite/model"
+	"github.com/Team254/cheesy-arena-lite/websocket"
 	"github.com/mitchellh/mapstructure"
 	"io"
 	"log"
@@ -20,7 +20,7 @@ func (web *Web) fieldMonitorDisplayHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if !web.enforceDisplayConfiguration(w, r, map[string]string{"ds": "false", "fta": "false", "reversed": "false"}) {
+	if !web.enforceDisplayConfiguration(w, r, map[string]string{"reversed": "false", "fta": "false"}) {
 		return
 	}
 
@@ -61,9 +61,8 @@ func (web *Web) fieldMonitorDisplayWebsocketHandler(w http.ResponseWriter, r *ht
 	defer ws.Close()
 
 	// Subscribe the websocket to the notifiers whose messages will be passed on to the client, in a separate goroutine.
-	go ws.HandleNotifiers(web.arena.MatchTimingNotifier, display.Notifier, web.arena.ArenaStatusNotifier,
-		web.arena.EventStatusNotifier, web.arena.RealtimeScoreNotifier, web.arena.MatchTimeNotifier,
-		web.arena.MatchLoadNotifier, web.arena.ReloadDisplaysNotifier)
+	go ws.HandleNotifiers(display.Notifier, web.arena.ArenaStatusNotifier, web.arena.EventStatusNotifier,
+		web.arena.ReloadDisplaysNotifier)
 
 	// Loop, waiting for commands and responding to them, until the client closes the connection.
 	for {

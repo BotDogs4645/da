@@ -4,7 +4,7 @@
 package web
 
 import (
-	"github.com/Team254/cheesy-arena/model"
+	"github.com/Team254/cheesy-arena-lite/model"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
@@ -16,7 +16,7 @@ func TestSetupSchedule(t *testing.T) {
 	for i := 0; i < 38; i++ {
 		web.arena.Database.CreateTeam(&model.Team{Id: i + 101})
 	}
-	web.arena.Database.CreateMatch(&model.Match{Type: model.Practice, ShortName: "P1"})
+	web.arena.Database.CreateMatch(&model.Match{Type: "practice", DisplayName: "1"})
 
 	// Check the default setting values.
 	recorder := web.getHttpResponse("/setup/schedule?matchType=practice")
@@ -34,10 +34,13 @@ func TestSetupSchedule(t *testing.T) {
 	assert.Contains(t, recorder.Body.String(), "2014-01-02 11:48:00") // Last match of second block.
 	assert.Contains(t, recorder.Body.String(), "2014-01-03 16:54:00") // Last match of third block.
 
-	// Save schedule and check that it was persisted.
+	// Save schedule and check that it is published to TBA.
+	web.arena.TbaClient.BaseUrl = "fakeUrl"
+	web.arena.EventSettings.TbaPublishingEnabled = true
 	recorder = web.postHttpResponse("/setup/schedule/save?matchType=qualification", "")
-	assert.Equal(t, 303, recorder.Code)
-	matches, err := web.arena.Database.GetMatchesByType(model.Qualification, true)
+	matches, err := web.arena.Database.GetMatchesByType("qualification")
+	assert.Equal(t, 500, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), "Failed to delete published matches")
 	assert.Nil(t, err)
 	assert.Equal(t, 64, len(matches))
 	location, _ := time.LoadLocation("Local")
@@ -85,13 +88,13 @@ func TestSetupScheduleErrors(t *testing.T) {
 	for i := 18; i < 38; i++ {
 		web.arena.Database.CreateTeam(&model.Team{Id: i + 101})
 	}
-	web.arena.Database.CreateMatch(&model.Match{Type: model.Practice, ShortName: "P1"})
-	web.arena.Database.CreateMatch(&model.Match{Type: model.Practice, ShortName: "P2"})
+	web.arena.Database.CreateMatch(&model.Match{Type: "practice", DisplayName: "1"})
+	web.arena.Database.CreateMatch(&model.Match{Type: "practice", DisplayName: "2"})
 	postData = "numScheduleBlocks=1&startTime0=2014-01-01 09:00:00 AM&numMatches0=64&matchSpacingSec0=480&" +
 		"matchType=practice"
 	recorder = web.postHttpResponse("/setup/schedule/generate", postData)
 	assert.Equal(t, 303, recorder.Code)
 	recorder = web.postHttpResponse("/setup/schedule/save", postData)
 	assert.Equal(t, 200, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), "schedule of 2 Practice matches already exists")
+	assert.Contains(t, recorder.Body.String(), "schedule of 2 practice matches already exists")
 }

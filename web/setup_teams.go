@@ -8,19 +8,16 @@ package web
 import (
 	"bytes"
 	"fmt"
-	"github.com/Team254/cheesy-arena/model"
+	"github.com/Team254/cheesy-arena-lite/model"
 	"github.com/dchest/uniuri"
+	"github.com/gorilla/mux"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
 
 const wpaKeyLength = 8
-
-// Global var to hold the team download progress percentage.
-var progressPercentage float64 = 5
 
 // Shows the team list.
 func (web *Web) teamsGetHandler(w http.ResponseWriter, r *http.Request) {
@@ -50,11 +47,9 @@ func (web *Web) teamsPostHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	progressPercentage = 5
-	progressIncrement := 95.0 / float64(len(teamNumbers))
 	for _, teamNumber := range teamNumbers {
 		team := model.Team{Id: teamNumber}
-		if web.arena.EventSettings.TbaDownloadEnabled {
+		if web.arena.EventSettings.TBADownloadEnabled {
 			if err := web.populateOfficialTeamInfo(&team); err != nil {
 				handleWebErr(w, err)
 				return
@@ -64,11 +59,7 @@ func (web *Web) teamsPostHandler(w http.ResponseWriter, r *http.Request) {
 			handleWebErr(w, err)
 			return
 		}
-
-		progressPercentage += progressIncrement
 	}
-	progressPercentage = 100
-
 	http.Redirect(w, r, "/setup/teams", 303)
 }
 
@@ -84,8 +75,6 @@ func (web *Web) teamsRefreshHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	progInc := 95.00 / float64(len(teams))
-
 	for _, team := range teams {
 		if err = web.populateOfficialTeamInfo(&team); err != nil {
 			handleWebErr(w, err)
@@ -95,13 +84,9 @@ func (web *Web) teamsRefreshHandler(w http.ResponseWriter, r *http.Request) {
 			handleWebErr(w, err)
 			return
 		}
-
-		progressPercentage += progInc
 	}
 
-	progressPercentage = 100
 	http.Redirect(w, r, "/setup/teams", 303)
-	progressPercentage = 5
 }
 
 // Clears the team list.
@@ -129,7 +114,8 @@ func (web *Web) teamEditGetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	teamId, _ := strconv.Atoi(r.PathValue("id"))
+	vars := mux.Vars(r)
+	teamId, _ := strconv.Atoi(vars["id"])
 	team, err := web.arena.Database.GetTeamById(teamId)
 	if err != nil {
 		handleWebErr(w, err)
@@ -162,7 +148,8 @@ func (web *Web) teamEditPostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	teamId, _ := strconv.Atoi(r.PathValue("id"))
+	vars := mux.Vars(r)
+	teamId, _ := strconv.Atoi(vars["id"])
 	team, err := web.arena.Database.GetTeamById(teamId)
 	if err != nil {
 		handleWebErr(w, err)
@@ -208,7 +195,8 @@ func (web *Web) teamDeletePostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	teamId, _ := strconv.Atoi(r.PathValue("id"))
+	vars := mux.Vars(r)
+	teamId, _ := strconv.Atoi(vars["id"])
 	team, err := web.arena.Database.GetTeamById(teamId)
 	if err != nil {
 		handleWebErr(w, err)
@@ -221,6 +209,20 @@ func (web *Web) teamDeletePostHandler(w http.ResponseWriter, r *http.Request) {
 	err = web.arena.Database.DeleteTeam(team.Id)
 	if err != nil {
 		handleWebErr(w, err)
+		return
+	}
+	http.Redirect(w, r, "/setup/teams", 303)
+}
+
+// Publishes the team list to the web.
+func (web *Web) teamsPublishHandler(w http.ResponseWriter, r *http.Request) {
+	if !web.userIsAdmin(w, r) {
+		return
+	}
+
+	err := web.arena.TbaClient.PublishTeams(web.arena.Database)
+	if err != nil {
+		http.Error(w, "Failed to publish teams: "+err.Error(), 500)
 		return
 	}
 	http.Redirect(w, r, "/setup/teams", 303)
@@ -252,12 +254,6 @@ func (web *Web) teamsGenerateWpaKeysHandler(w http.ResponseWriter, r *http.Reque
 	http.Redirect(w, r, "/setup/teams", 303)
 }
 
-// Returns the current TBA team data download progress.
-func (web *Web) teamsUpdateProgressBarHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain")
-	_, _ = w.Write([]byte(fmt.Sprintf("%.0f", progressPercentage)))
-}
-
 func (web *Web) renderTeams(w http.ResponseWriter, r *http.Request, showErrorMessage bool) {
 	teams, err := web.arena.Database.GetAllTeams()
 	if err != nil {
@@ -284,7 +280,7 @@ func (web *Web) renderTeams(w http.ResponseWriter, r *http.Request, showErrorMes
 
 // Returns true if it is safe to change the team list (i.e. no matches/results exist yet).
 func (web *Web) canModifyTeamList() bool {
-	matches, err := web.arena.Database.GetMatchesByType(model.Qualification, true)
+	matches, err := web.arena.Database.GetMatchesByType("qualification")
 	if err != nil || len(matches) > 0 {
 		return false
 	}
@@ -308,11 +304,6 @@ func (web *Web) populateOfficialTeamInfo(team *model.Team) error {
 	team.City = tbaTeam.City
 	team.StateProv = tbaTeam.StateProv
 	team.Country = tbaTeam.Country
-	schoolNameRe := regexp.MustCompile("^.*\\S&(\\S.*?$)")
-	matches := schoolNameRe.FindStringSubmatch(tbaTeam.Name)
-	if len(matches) > 0 {
-		team.SchoolName = matches[1]
-	}
 	team.RookieYear = tbaTeam.RookieYear
 	team.RobotName, err = web.arena.TbaClient.GetRobotName(team.Id, time.Now().Year())
 	if err != nil {
@@ -327,7 +318,7 @@ func (web *Web) populateOfficialTeamInfo(team *model.Team) error {
 	var accomplishmentsBuffer bytes.Buffer
 	for i := len(recentAwards) - 1; i >= 0; i-- {
 		award := recentAwards[i]
-		if time.Now().Year()-award.Year <= 1 {
+		if time.Now().Year()-award.Year <= 2 {
 			accomplishmentsBuffer.WriteString(fmt.Sprintf("<p>%d %s - %s</p>", award.Year, award.EventName,
 				award.Name))
 		}

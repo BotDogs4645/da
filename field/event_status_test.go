@@ -4,8 +4,8 @@
 package field
 
 import (
-	"github.com/Team254/cheesy-arena/game"
-	"github.com/Team254/cheesy-arena/model"
+	"github.com/Team254/cheesy-arena-lite/game"
+	"github.com/Team254/cheesy-arena-lite/model"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
@@ -20,46 +20,13 @@ func TestCycleTime(t *testing.T) {
 	arena.updateCycleTime(time.Now().Add(-125 * time.Second))
 	assert.Equal(t, "", arena.EventStatus.CycleTime)
 	arena.updateCycleTime(time.Now())
-	assert.Regexp(t, "2:05.*", arena.EventStatus.CycleTime)
+	assert.Equal(t, "2:05", arena.EventStatus.CycleTime)
 	arena.updateCycleTime(time.Now().Add(3456 * time.Second))
-	assert.Regexp(t, "57:36.*", arena.EventStatus.CycleTime)
+	assert.Equal(t, "57:36", arena.EventStatus.CycleTime)
 	arena.updateCycleTime(time.Now().Add(5 * time.Hour))
-	assert.Regexp(t, "4:02:24.*", arena.EventStatus.CycleTime)
+	assert.Equal(t, "4:02:24", arena.EventStatus.CycleTime)
 	arena.updateCycleTime(time.Now().Add(123*time.Hour + 1256*time.Second))
-	assert.Regexp(t, "118:20:56.*", arena.EventStatus.CycleTime)
-}
-
-func TestCycleTimeDelta(t *testing.T) {
-	arena := setupTestArena(t)
-
-	// Check perfect cycle time.
-	arena.CurrentMatch.Time = time.Unix(1000, 0)
-	arena.updateCycleTime(time.Unix(1000, 0))
-	assert.Equal(t, "", arena.EventStatus.CycleTime)
-	arena.CurrentMatch.Time = time.Unix(1754, 0)
-	arena.updateCycleTime(time.Unix(1754, 0))
-	assert.Equal(t, "12:34 (0:00 faster than scheduled)", arena.EventStatus.CycleTime)
-
-	// Check faster cycle time.
-	arena.CurrentMatch.Time = time.Unix(1000, 0)
-	arena.updateCycleTime(time.Unix(1000, 0))
-	arena.CurrentMatch.Time = time.Unix(1500, 0)
-	arena.updateCycleTime(time.Unix(1417, 0))
-	assert.Equal(t, "6:57 (1:23 faster than scheduled)", arena.EventStatus.CycleTime)
-
-	// Check slower cycle time.
-	arena.CurrentMatch.Time = time.Unix(1000, 0)
-	arena.updateCycleTime(time.Unix(1000, 0))
-	arena.CurrentMatch.Time = time.Unix(1500, 0)
-	arena.updateCycleTime(time.Unix(2500, 0))
-	assert.Equal(t, "25:00 (16:40 slower than scheduled)", arena.EventStatus.CycleTime)
-
-	// Check over a long gap in the schedule.
-	arena.CurrentMatch.Time = time.Unix(1000, 0)
-	arena.updateCycleTime(time.Unix(1000, 0))
-	arena.CurrentMatch.Time = time.Unix(2000, 0)
-	arena.updateCycleTime(time.Unix(2000, 0))
-	assert.Equal(t, "", arena.EventStatus.CycleTime)
+	assert.Equal(t, "118:20:56", arena.EventStatus.CycleTime)
 }
 
 func TestEarlyLateMessage(t *testing.T) {
@@ -68,9 +35,9 @@ func TestEarlyLateMessage(t *testing.T) {
 	arena.LoadTestMatch()
 	assert.Equal(t, "", arena.getEarlyLateMessage())
 
-	arena.Database.CreateMatch(&model.Match{Type: model.Qualification, TypeOrder: 1})
-	arena.Database.CreateMatch(&model.Match{Type: model.Qualification, TypeOrder: 2})
-	matches, _ := arena.Database.GetMatchesByType(model.Qualification, false)
+	arena.Database.CreateMatch(&model.Match{Type: "qualification", DisplayName: "1"})
+	arena.Database.CreateMatch(&model.Match{Type: "qualification", DisplayName: "2"})
+	matches, _ := arena.Database.GetMatchesByType("qualification")
 	assert.Equal(t, 2, len(matches))
 
 	setMatch(arena.Database, &matches[0], time.Now().Add(300*time.Second), time.Time{}, false)
@@ -141,11 +108,11 @@ func TestEarlyLateMessage(t *testing.T) {
 
 	// Check other match types.
 	arena.MatchState = PreMatch
-	arena.CurrentMatch = &model.Match{Type: model.Practice, Time: time.Now().Add(-181 * time.Second)}
+	arena.CurrentMatch = &model.Match{Type: "practice", Time: time.Now().Add(-181 * time.Second)}
 	assert.Equal(t, "Event is running 3 minutes late", arena.getEarlyLateMessage())
 
-	arena.CurrentMatch = &model.Match{Type: model.Playoff, Time: time.Now().Add(-181 * time.Second)}
-	assert.Equal(t, "Event is running 3 minutes late", arena.getEarlyLateMessage())
+	arena.CurrentMatch = &model.Match{Type: "elimination", Time: time.Now().Add(-181 * time.Second)}
+	assert.Equal(t, "", arena.getEarlyLateMessage())
 }
 
 func setMatch(database *model.Database, match *model.Match, matchTime time.Time, startedAt time.Time, isComplete bool) {
@@ -154,7 +121,7 @@ func setMatch(database *model.Database, match *model.Match, matchTime time.Time,
 	if isComplete {
 		match.Status = game.TieMatch
 	} else {
-		match.Status = game.MatchScheduled
+		match.Status = game.MatchNotPlayed
 	}
 	_ = database.UpdateMatch(match)
 }

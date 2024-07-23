@@ -6,8 +6,8 @@
 package web
 
 import (
-	"github.com/Team254/cheesy-arena/model"
-	"github.com/Team254/cheesy-arena/tournament"
+	"github.com/Team254/cheesy-arena-lite/model"
+	"github.com/Team254/cheesy-arena-lite/tournament"
 	"net/http"
 	"strconv"
 )
@@ -71,5 +71,19 @@ func (web *Web) awardsPostHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	http.Redirect(w, r, "/setup/awards", 303)
+}
+
+// Publishes the awards to the web.
+func (web *Web) awardsPublishHandler(w http.ResponseWriter, r *http.Request) {
+	if !web.userIsAdmin(w, r) {
+		return
+	}
+
+	err := web.arena.TbaClient.PublishAwards(web.arena.Database)
+	if err != nil {
+		http.Error(w, "Failed to publish awards: "+err.Error(), 500)
+		return
+	}
 	http.Redirect(w, r, "/setup/awards", 303)
 }
