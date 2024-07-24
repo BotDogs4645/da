@@ -33,6 +33,15 @@ var signalVolunteers = function() {
   websocket.send("signalVolunteers");
 };
 
+var toggleAllBypass = function() {
+  toggleBypass("R1");
+  toggleBypass("R2");
+  toggleBypass("R3");
+  toggleBypass("B1");
+  toggleBypass("B2");
+  toggleBypass("B3");
+}
+
 // Sends a websocket message to signal to the teams that they may enter the field.
 var signalReset = function() {
   websocket.send("signalReset");
