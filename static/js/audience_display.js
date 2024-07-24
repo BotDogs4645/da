@@ -87,15 +87,9 @@ var handleMatchLoad = function(data) {
   $("#" + redSide + "Team1").text(currentMatch.Red1);
   $("#" + redSide + "Team2").text(currentMatch.Red2);
   $("#" + redSide + "Team3").text(currentMatch.Red3);
-  $("#" + redSide + "Team1Avatar").attr("src", getAvatarUrl(currentMatch.Red1));
-  $("#" + redSide + "Team2Avatar").attr("src", getAvatarUrl(currentMatch.Red2));
-  $("#" + redSide + "Team3Avatar").attr("src", getAvatarUrl(currentMatch.Red3));
   $("#" + blueSide + "Team1").text(currentMatch.Blue1);
   $("#" + blueSide + "Team2").text(currentMatch.Blue2);
   $("#" + blueSide + "Team3").text(currentMatch.Blue3);
-  $("#" + blueSide + "Team1Avatar").attr("src", getAvatarUrl(currentMatch.Blue1));
-  $("#" + blueSide + "Team2Avatar").attr("src", getAvatarUrl(currentMatch.Blue2));
-  $("#" + blueSide + "Team3Avatar").attr("src", getAvatarUrl(currentMatch.Blue3));
 
   // Show alliance numbers if this is an elimination match.
   if (currentMatch.Type === "elimination") {
@@ -146,22 +140,16 @@ var handleRealtimeScore = function(data) {
 // Handles a websocket message to populate the final score data.
 var handleScorePosted = function(data) {
   $("#" + redSide + "FinalScore").text(data.RedScoreSummary.Score);
-  $("#" + redSide + "FinalTeam1").html(getRankingText(data.Match.Red1, data.Rankings) + "" + data.Match.Red1);
-  $("#" + redSide + "FinalTeam2").html(getRankingText(data.Match.Red2, data.Rankings) + "" + data.Match.Red2);
-  $("#" + redSide + "FinalTeam3").html(getRankingText(data.Match.Red3, data.Rankings) + "" + data.Match.Red3);
-  $("#" + redSide + "FinalTeam1Avatar").attr("src", getAvatarUrl(data.Match.Red1));
-  $("#" + redSide + "FinalTeam2Avatar").attr("src", getAvatarUrl(data.Match.Red2));
-  $("#" + redSide + "FinalTeam3Avatar").attr("src", getAvatarUrl(data.Match.Red3));
+  $("#" + redSide + "FinalTeam1").html(getRankingText(data.Match.Red1, data.Rankings));
+  $("#" + redSide + "FinalTeam2").html(getRankingText(data.Match.Red2, data.Rankings));
+  $("#" + redSide + "FinalTeam3").html(getRankingText(data.Match.Red3, data.Rankings));
   $("#" + redSide + "FinalAutoPoints").text(data.RedScoreSummary.AutoPoints);
   $("#" + redSide + "FinalTeleopPoints").text(data.RedScoreSummary.TeleopPoints);
   $("#" + redSide + "FinalEndgamePoints").text(data.RedScoreSummary.EndgamePoints);
   $("#" + blueSide + "FinalScore").text(data.BlueScoreSummary.Score);
-  $("#" + blueSide + "FinalTeam1").html(getRankingText(data.Match.Blue1, data.Rankings) + "" + data.Match.Blue1);
-  $("#" + blueSide + "FinalTeam2").html(getRankingText(data.Match.Blue2, data.Rankings) + "" + data.Match.Blue2);
-  $("#" + blueSide + "FinalTeam3").html(getRankingText(data.Match.Blue3, data.Rankings) + "" + data.Match.Blue3);
-  $("#" + blueSide + "FinalTeam1Avatar").attr("src", getAvatarUrl(data.Match.Blue1));
-  $("#" + blueSide + "FinalTeam2Avatar").attr("src", getAvatarUrl(data.Match.Blue2));
-  $("#" + blueSide + "FinalTeam3Avatar").attr("src", getAvatarUrl(data.Match.Blue3));
+  $("#" + blueSide + "FinalTeam1").html(getRankingText(data.Match.Blue1, data.Rankings));
+  $("#" + blueSide + "FinalTeam2").html(getRankingText(data.Match.Blue2, data.Rankings));
+  $("#" + blueSide + "FinalTeam3").html(getRankingText(data.Match.Blue3, data.Rankings));
   $("#" + blueSide + "FinalAutoPoints").text(data.BlueScoreSummary.AutoPoints);
   $("#" + blueSide + "FinalTeleopPoints").text(data.BlueScoreSummary.TeleopPoints);
   $("#" + blueSide + "FinalEndgamePoints").text(data.BlueScoreSummary.EndgamePoints);
@@ -621,15 +609,23 @@ var getAvatarUrl = function(teamId) {
 var getRankingText = function(teamId, rankings) {
   var ranking = rankings[teamId];
   if (ranking === undefined || ranking.Rank === 0) {
-    return "<div class='rank-spacer'></div>";
+    return `<div style="display:flex;margin: auto;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" style="color:#6b7280;margin-top:auto;margin-bottom:auto;height:35px;">
+            <path d="M3.75 7.25a.75.75 0 0 0 0 1.5h8.5a.75.75 0 0 0 0-1.5h-8.5Z" />
+          </svg><p style="margin-top:auto;margin-bottom:auto;">${teamId}</p></div>`;
   }
 
   if (ranking.Rank > ranking.PreviousRank && ranking.PreviousRank > 0) {
-    return "<div class='rank-box rank-down'>" + ranking.Rank + "</div><div class='arrow-down'></div>";
+    return `<div style="display:flex;margin: auto;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" style="color:#ef4444;margin-top:auto;margin-bottom:auto;height:35px;">
+              <path fill-rule="evenodd" d="M8 2a.75.75 0 0 1 .75.75v8.69l3.22-3.22a.75.75 0 1 1 1.06 1.06l-4.5 4.5a.75.75 0 0 1-1.06 0l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.22 3.22V2.75A.75.75 0 0 1 8 2Z" clip-rule="evenodd" />
+            </svg><p style="margin-top:auto;margin-bottom:auto;"><span style="color:#4b5563;font-size: 2.25rem;line-height: 2.5rem;">${ranking.Rank}</span>${teamId}</p></div>`;
   } else if (ranking.Rank < ranking.PreviousRank) {
-    return "<div class='rank-box rank-up'>" + ranking.Rank + "</div><div class='arrow-up'></div>";
+    return `<div style="display:flex;margin: auto;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" style="color:#22c55e;margin-top:auto;margin-bottom:auto;height:35px;">
+              <path fill-rule="evenodd" d="M8 14a.75.75 0 0 1-.75-.75V4.56L4.03 7.78a.75.75 0 0 1-1.06-1.06l4.5-4.5a.75.75 0 0 1 1.06 0l4.5 4.5a.75.75 0 0 1-1.06 1.06L8.75 4.56v8.69A.75.75 0 0 1 8 14Z" clip-rule="evenodd" />
+            </svg><p style="margin-top:auto;margin-bottom:auto;"><span style="color:#4b5563;font-size: 2.25rem;line-height: 2.5rem;">${ranking.Rank}</span>${teamId}</p></div>`;
   }
-  return "<div class='rank-box rank-same'>" + ranking.Rank + "</div>";
+  return `<div style="display:flex;margin: auto;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" style="color:#6b7280;margin-top:auto;margin-bottom:auto;height:35px;">
+            <path d="M3.75 7.25a.75.75 0 0 0 0 1.5h8.5a.75.75 0 0 0 0-1.5h-8.5Z" />
+          </svg><p style="margin-top:auto;margin-bottom:auto;"><span style="color:#4b5563;font-size: 2.25rem;line-height: 2.5rem;">${ranking.Rank}</span>${teamId}</p></div>`;
 };
 
 $(function() {
