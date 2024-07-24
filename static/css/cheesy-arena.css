@@ -123,3 +123,46 @@ input[data-changed="true"], select[data-changed="true"] {
   margin-top: 5px;
   margin-bottom: 10px;
 }
+
+
+.score-button {
+  min-height: 100px;
+  border: 1px solid #ccc;
+  color: white;
+  min-width: 150px;
+  font-size: 70px;
+  margin: 0 auto;
+  margin-bottom: 20px;
+  margin-top: 20px;
+  border-radius: 15px;
+  display:block;
+}
+
+
+.increase-button {
+  background-color: green;
+}
+.increase-button:active {
+  background-color: darkgreen;
+}
+.decrease-button {
+  background-color: #e66;
+}
+.decrease-button:active {
+  background-color: #de5f5f;
+}
+
+.score-buttons-container {
+  margin-top: 40px;
+}
+
+.score-number {
+  font-family: 'FuturaLTBold';
+}
+
+.disabled-score-button {
+  background-color: #ccc !important;
+}
+.disabled-score-button :active{
+  background-color: #ccc !important;
+}
