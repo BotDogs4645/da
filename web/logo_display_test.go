@@ -6,7 +6,7 @@ package web
 import (
 	"testing"
 
-	"github.com/Team254/cheesy-arena/websocket"
+	"github.com/BotDogs4645/da/websocket"
 	gorillawebsocket "github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 )

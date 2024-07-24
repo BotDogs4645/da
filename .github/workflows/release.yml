@@ -25,8 +25,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref }}
-          release_name: Cheesy Arena Lite ${{ github.ref }}
-          body: This is a release of Cheesy Arena Lite, the game-agnostic version of Cheesy Arena. Download the version
+          release_name: da ${{ github.ref }}
+          body: This is a release of da. Download the version
               for your operating system below. Supported operating systems are Linux, macOS (x64 and M1), and Windows.
           draft: false
           prerelease: false
