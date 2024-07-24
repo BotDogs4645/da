@@ -60,10 +60,7 @@ func UpdateMatchSounds() {
 		{
 			"warning_guitar",
 			"wav",
-			float64(
-				MatchTiming.AutoDurationSec + MatchTiming.PauseDurationSec + MatchTiming.TeleopDurationSec -
-					MatchTiming.WarningRemainingDurationSec,
-			),
+			-1,
 			true,
 		},
 		{

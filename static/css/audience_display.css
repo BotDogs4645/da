@@ -221,8 +221,6 @@ html {
 	width: 310px;
 	height: 310px;
 	background-color: #fff;
-	border: 1px solid #333;
-	box-shadow: 0 0 5px #666;
 	text-align: center;
 	backface-visibility: hidden;
 	-webkit-backface-visibility: hidden;
