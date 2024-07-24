@@ -297,6 +297,26 @@ func (web *Web) matchPlayWebsocketHandler(w http.ResponseWriter, r *http.Request
 			web.arena.FieldReset = true
 			web.arena.AllianceStationDisplayMode = "fieldReset"
 			web.arena.AllianceStationDisplayModeNotifier.Notify()
+
+			// i am too lazy to come up with a better way for this
+			hardcoded := map[string]interface{}{
+				"id":           100,
+				"TopText":      "Field Reset",
+				"BottomText":   "The FTA has reset the field",
+				"DisplayOrder": 1,
+				"AwardId":      -1,
+			}
+		
+			var lowerThird model.LowerThird
+			err := mapstructure.Decode(hardcoded, &lowerThird)
+			if err != nil {
+				ws.WriteError(err.Error())
+				return
+			}
+			web.saveLowerThird(&lowerThird)
+			web.arena.LowerThird = &lowerThird
+			web.arena.ShowLowerThird = true
+			web.arena.LowerThirdNotifier.Notify()
 			continue // Don't reload.
 		case "commitResults":
 			err = web.commitCurrentMatchScore()
@@ -314,6 +334,8 @@ func (web *Web) matchPlayWebsocketHandler(w http.ResponseWriter, r *http.Request
 				ws.WriteError(err.Error())
 				continue
 			}
+			web.arena.ShowLowerThird = false
+			web.arena.LowerThirdNotifier.Notify()
 			err = ws.WriteNotifier(web.arena.ReloadDisplaysNotifier)
 			if err != nil {
 				log.Println(err)
@@ -331,6 +353,8 @@ func (web *Web) matchPlayWebsocketHandler(w http.ResponseWriter, r *http.Request
 				ws.WriteError(err.Error())
 				continue
 			}
+			web.arena.ShowLowerThird = false
+			web.arena.LowerThirdNotifier.Notify()
 			err = ws.WriteNotifier(web.arena.ReloadDisplaysNotifier)
 			if err != nil {
 				log.Println(err)
