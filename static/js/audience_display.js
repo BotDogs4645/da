@@ -609,9 +609,7 @@ var getAvatarUrl = function(teamId) {
 var getRankingText = function(teamId, rankings) {
   var ranking = rankings[teamId];
   if (ranking === undefined || ranking.Rank === 0) {
-    return `<div style="display:flex;margin: auto;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" style="color:#6b7280;margin-top:auto;margin-bottom:auto;height:35px;">
-            <path d="M3.75 7.25a.75.75 0 0 0 0 1.5h8.5a.75.75 0 0 0 0-1.5h-8.5Z" />
-          </svg><p style="margin-top:auto;margin-bottom:auto;">${teamId}</p></div>`;
+    return `<div style="display:flex;margin: auto;"><p style="margin-top:auto;margin-bottom:auto;">${teamId}</p></div>`;
   }
 
   if (ranking.Rank > ranking.PreviousRank && ranking.PreviousRank > 0) {
