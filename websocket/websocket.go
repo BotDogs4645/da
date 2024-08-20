@@ -31,7 +31,11 @@ type Message struct {
 	Data interface{} `json:"data"`
 }
 
-var websocketUpgrader = websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 2014}
+var websocketUpgrader = websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 2014,
+CheckOrigin: func(r *http.Request) bool {
+	return true; //based asf
+},
+}
 
 // Upgrades the given HTTP request to a websocket connection.
 func NewWebsocket(w http.ResponseWriter, r *http.Request) (*Websocket, error) {
