@@ -226,16 +226,15 @@ var transitionBlankToBracket = function(callback) {
 };
 
 var transitionBlankToIntro = function(callback) {
-  $("#overlayCentering").transition(overlayCenteringShowParams, 500, "ease", function() {
-    $(".teams").css("display", "flex");
-    $(".avatars").css("display", "flex");
-    $(".avatars").css("opacity", 1);
-    $(".score").transition({queue: false, width: scoreMid}, 500, "ease", function() {
-      $("#eventMatchInfo").css("display", "flex");
-      $("#eventMatchInfo").transition({queue: false, height: eventMatchInfoDown}, 500, "ease", callback);
-    });
-  });
+  $('#overlayLeft').removeClass('col-span-2').addClass('col-span-1');
+  $('#overlayRight').removeClass('col-span-2').addClass('col-span-1');
+  $(".score-number").addClass("hidden");
+  $("#matchTime").addClass("hidden");
+  $('#overlayMiddle').addClass("col-span-3");
+  $('#matchName').removeClass("font-light").addClass("text-5xl font-semibold leading-6 my-auto");
+  $("#overlayCentering").transition(overlayCenteringShowParams, 500, "ease", callback);
 };
+
 
 var transitionBlankToLogo = function(callback) {
   $(".blindsCenter.blank").css({rotateY: "0deg"});
@@ -334,29 +333,42 @@ var transitionBracketToSponsor = function(callback) {
 };
 
 var transitionIntroToBlank = function(callback) {
-  $("#eventMatchInfo").transition({queue: false, height: eventMatchInfoUp}, 500, "ease", function() {
-    $("#eventMatchInfo").hide();
-    $(".score").transition({queue: false, width: scoreIn}, 500, "ease", function() {
-      $(".avatars").css("opacity", 0);
-      $(".avatars").hide();
-      $(".teams").hide();
-      $("#overlayCentering").transition(overlayCenteringHideParams, 1000, "ease", callback);
-    });
+  $("#overlayCentering").transition(overlayCenteringHideParams, 500, "ease", function() {
+    $(".score-number").removeClass("hidden");
+    $("#matchTime").removeClass("hidden");
+    $('#overlayMiddle').removeClass("col-span-3");
+    $('#overlayLeft').removeClass('col-span-1').addClass('col-span-2');
+    $('#overlayRight').removeClass('col-span-1').addClass('col-span-2');
+    $('#matchName').addClass("font-light").removeClass("text-5xl font-semibold leading-6 my-auto");
+    callback();
   });
 };
 
+
+
 var transitionIntroToMatch = function(callback) {
-  $(".avatars").transition({queue: false, opacity: 0}, 500, "ease", function() {
-    $(".avatars").hide();
-  });
-  $(".score-fields").css("display", "flex");
-  $(".score-fields").transition({queue: false, width: scoreFieldsOut}, 500, "ease");
-  $("#logo").transition({queue: false, top: logoUp}, 500, "ease");
-  $(".score").transition({queue: false, width: scoreOut}, 500, "ease", function() {
-    $(".score-number").transition({queue: false, opacity: 1}, 750, "ease");
-    $("#matchTime").transition({queue: false, opacity: 1}, 750, "ease", callback);
-    $(".score-fields").transition({queue: false, opacity: 1}, 750, "ease");
-  });
+  // $(".score-number").addClass("hidden");
+  // $("#matchTime").addClass("hidden");
+  // $('#overlayMiddle').addClass("col-span-3");
+  // $('#matchName').removeClass("font-light").addClass("text-5xl font-semibold leading-6 my-auto");
+
+  $('#overlayMiddle').removeClass("col-span-3");
+  $('#matchName').removeClass("text-5xl font-semibold leading-6 my-auto").addClass("font-light");
+  $("#matchTime").removeClass("hidden");
+  $(".score-number").removeClass("hidden");
+  $('#overlayLeft').removeClass('col-span-1').addClass('col-span-2');
+  $('#overlayRight').removeClass('col-span-1').addClass('col-span-2');
+  // $(".avatars").transition({queue: false, opacity: 0}, 500, "ease", function() {
+  //   $(".avatars").hide();
+  // });
+  // $(".score-fields").css("display", "flex");
+  // $(".score-fields").transition({queue: false, width: scoreFieldsOut}, 500, "ease");
+  // $("#logo").transition({queue: false, top: logoUp}, 500, "ease");
+  // $(".score").transition({queue: false, width: scoreOut}, 500, "ease", function() {
+  //   $(".score-number").transition({queue: false, opacity: 1}, 750, "ease");
+  //   $("#matchTime").transition({queue: false, opacity: 1}, 750, "ease", callback);
+  //   $(".score-fields").transition({queue: false, opacity: 1}, 750, "ease");
+  // });
 };
 
 var transitionIntroToTimeout = function(callback) {

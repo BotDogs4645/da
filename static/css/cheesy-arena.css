@@ -12,15 +12,14 @@
   opacity: 0.2;
 }
 
-/* New styles. */
-@font-face {
-  font-family: "FuturaLTBold";
-  src: url("fonts/futura-lt-bold.otf") format("opentype");
+:root {
+  font-family: Inter, sans-serif;
+  font-feature-settings: 'liga' 1, 'calt' 1; /* fix for Chrome */
 }
-@font-face {
-  font-family: "FuturaLT";
-  src: url("fonts/futura-lt.otf") format("opentype");
+@supports (font-variation-settings: normal) {
+  :root { font-family: InterVariable, sans-serif !important;  }
 }
+
 .red-text {
   color: #f00;
 }
@@ -154,10 +153,6 @@ input[data-changed="true"], select[data-changed="true"] {
 
 .score-buttons-container {
   margin-top: 40px;
-}
-
-.score-number {
-  font-family: 'FuturaLTBold';
 }
 
 .disabled-score-button {
