@@ -4,6 +4,12 @@
 //
 // Client-side methods for the audience display.
 
+// this code is old af and pure cancer
+// try to stay away, or......
+// TODO: react rewrite ;)
+// - Camden@4645
+
+
 var websocket;
 var transitionMap;
 const transitionQueue = [];
@@ -45,41 +51,53 @@ var handleAudienceDisplayMode = function(targetScreen) {
 // Sequentially executes all transitions in the queue. Returns without doing anything if another invocation is already
 // in progress.
 const executeTransitionQueue = function() {
+  console.debug("executing transition queue...");
   if (transitionInProgress) {
-    // There is an existing invocation of this method which will execute all transitions in the queue.
+    console.debug("transition already in progress");
     return;
   }
 
   if (transitionQueue.length > 0) {
+    console.debug("transition queue length:", transitionQueue.length);
     transitionInProgress = true;
     const targetScreen = transitionQueue.shift();
+    console.debug("target screen:", targetScreen);
+    
     const callback = function() {
-      // When the current transition is complete, call this method again to invoke the next one in the queue.
+      console.debug("transition to", targetScreen, "completed");
       currentScreen = targetScreen;
       transitionInProgress = false;
+      console.debug("ready for next transition in the queue");
       setTimeout(executeTransitionQueue, 100);  // A small delay is needed to avoid visual glitches.
     };
 
     if (targetScreen === currentScreen) {
+      console.debug("target screen is the same as the current screen. No transition needed");
       callback();
       return;
     }
 
     if (targetScreen === "sponsor") {
+      console.debug("initializing sponsor display");
       initializeSponsorDisplay();
     }
 
     let transitions = transitionMap[currentScreen][targetScreen];
     if (transitions !== undefined) {
+      console.debug("found direct transition from", currentScreen, "to", targetScreen);
       transitions(callback);
     } else {
-      // There is no direct transition defined; need to go to the blank screen first.
+      console.debug("no direct transition from", currentScreen, "to", targetScreen, ", transitioning to blank screen first");
       transitionMap[currentScreen]["blank"](function() {
+        console.debug("transition to blank screen completed, transitioning to", targetScreen);
         transitionMap["blank"][targetScreen](callback);
       });
     }
+  } else {
+    console.debug("no more transitions in the queue");
   }
 };
+
 
 // Handles a websocket message to update the teams for the current match.
 var handleMatchLoad = function(data) {
@@ -263,11 +281,12 @@ var transitionBlankToMatch = function(callback) {
     $("#logo").transition({queue: false, top: logoUp}, 500, "ease");
     $(".score").transition({queue: false, width: scoreOut}, 500, "ease", function() {
       $("#eventMatchInfo").css("display", "flex");
-      $("#eventMatchInfo").transition({queue: false, height: eventMatchInfoDown}, 500, "ease", callback);
+      $("#eventMatchInfo").transition({queue: false, height: eventMatchInfoDown}, 500, "ease");
       $(".score-number").transition({queue: false, opacity: 1}, 750, "ease");
       $("#matchTime").transition({queue: false, opacity: 1}, 750, "ease");
       $(".score-fields").transition({queue: false, opacity: 1}, 750, "ease");
     });
+    callback();
   });
 };
 
@@ -287,14 +306,6 @@ var transitionBlankToSponsor = function(callback) {
       $("#sponsor").show();
       $("#sponsor").transition({queue: false, opacity: 1}, 1000, "ease", callback);
     }, 200);
-  });
-};
-
-var transitionBlankToTimeout = function(callback) {
-  $("#overlayCentering").transition(overlayCenteringShowParams, 500, "ease", function () {
-    $("#logo").transition({queue: false, top: logoUp}, 500, "ease", function() {
-      $("#matchTime").transition({queue: false, opacity: 1}, 750, "ease", callback);
-    });
   });
 };
 
@@ -358,6 +369,7 @@ var transitionIntroToMatch = function(callback) {
   $(".score-number").removeClass("hidden");
   $('#overlayLeft').removeClass('col-span-1').addClass('col-span-2');
   $('#overlayRight').removeClass('col-span-1').addClass('col-span-2');
+  callback();
   // $(".avatars").transition({queue: false, opacity: 0}, 500, "ease", function() {
   //   $(".avatars").hide();
   // });
@@ -369,20 +381,6 @@ var transitionIntroToMatch = function(callback) {
   //   $("#matchTime").transition({queue: false, opacity: 1}, 750, "ease", callback);
   //   $(".score-fields").transition({queue: false, opacity: 1}, 750, "ease");
   // });
-};
-
-var transitionIntroToTimeout = function(callback) {
-  $("#eventMatchInfo").transition({queue: false, height: eventMatchInfoUp}, 500, "ease", function() {
-    $("#eventMatchInfo").hide();
-    $(".score").transition({queue: false, width: scoreIn}, 500, "ease", function() {
-      $(".avatars").css("opacity", 0);
-      $(".avatars").hide();
-      $(".teams").hide();
-      $("#logo").transition({queue: false, top: logoUp}, 500, "ease", function() {
-        $("#matchTime").transition({queue: false, opacity: 1}, 750, "ease", callback);
-      });
-    });
-  });
 };
 
 var transitionLogoToBlank = function(callback) {
@@ -455,18 +453,13 @@ var transitionLogoLumaToScore = function(callback) {
 };
 
 var transitionMatchToBlank = function(callback) {
-  $("#eventMatchInfo").transition({queue: false, height: eventMatchInfoUp}, 500, "ease");
-  $("#matchTime").transition({queue: false, opacity: 0}, 300, "linear");
-  $(".score-fields").transition({queue: false, opacity: 0}, 300, "ease");
-  $(".score-number").transition({queue: false, opacity: 0}, 300, "linear", function() {
-    $("#eventMatchInfo").hide();
-    $(".score-fields").transition({queue: false, width: 0}, 500, "ease");
-    $("#logo").transition({queue: false, top: logoDown}, 500, "ease");
-    $(".score").transition({queue: false, width: scoreIn}, 500, "ease", function() {
-      $(".teams").hide();
-      $(".score-fields").hide();
-      $("#overlayCentering").transition(overlayCenteringHideParams, 1000, "ease", callback);
-    });
+  // Reverse the visibility and opacity transitions
+  console.log('da');
+  // Transition for #overlayCentering and ensure bottom is reset to -210px
+  $("#overlayCentering").transition({ queue: false, bottom: -210 }, 500, "ease", function() {
+    console.log("tansition completed resetting bottom to -210px");
+    $("#overlayCentering").css("bottom", "-210px");
+    callback();
   });
 };
 
@@ -546,28 +539,6 @@ var transitionSponsorToLogo = function(callback) {
 var transitionSponsorToScore = function(callback) {
   transitionSponsorToLogo(function() {
     transitionLogoToScore(callback);
-  });
-};
-
-var transitionTimeoutToBlank = function(callback) {
-  $("#matchTime").transition({queue: false, opacity: 0}, 300, "linear", function() {
-    $("#logo").transition({queue: false, top: logoDown}, 500, "ease", function() {
-      $("#overlayCentering").transition(overlayCenteringHideParams, 1000, "ease", callback);
-    });
-  });
-};
-
-var transitionTimeoutToIntro = function(callback) {
-  $("#matchTime").transition({queue: false, opacity: 0}, 300, "linear", function() {
-    $("#logo").transition({queue: false, top: logoDown}, 500, "ease", function() {
-      $(".avatars").css("display", "flex");
-      $(".avatars").css("opacity", 1);
-      $(".teams").css("display", "flex");
-      $(".score").transition({queue: false, width: scoreMid}, 500, "ease", function () {
-        $("#eventMatchInfo").show();
-        $("#eventMatchInfo").transition({queue: false, height: eventMatchInfoDown}, 500, "ease", callback);
-      });
-    });
   });
 };
 
@@ -689,7 +660,6 @@ $(function() {
       match: transitionBlankToMatch,
       score: transitionBlankToScore,
       sponsor: transitionBlankToSponsor,
-      timeout: transitionBlankToTimeout,
     },
     bracket: {
       blank: transitionBracketToBlank,
@@ -701,7 +671,6 @@ $(function() {
     intro: {
       blank: transitionIntroToBlank,
       match: transitionIntroToMatch,
-      timeout: transitionIntroToTimeout,
     },
     logo: {
       blank: transitionLogoToBlank,
@@ -718,7 +687,6 @@ $(function() {
     },
     match: {
       blank: transitionMatchToBlank,
-      intro: transitionMatchToIntro,
     },
     score: {
       blank: transitionScoreToBlank,
@@ -732,10 +700,6 @@ $(function() {
       bracket: transitionSponsorToBracket,
       logo: transitionSponsorToLogo,
       score: transitionSponsorToScore,
-    },
-    timeout: {
-      blank: transitionTimeoutToBlank,
-      intro: transitionTimeoutToIntro,
     },
   }
 });
