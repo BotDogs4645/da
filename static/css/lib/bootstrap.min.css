@@ -4685,7 +4685,7 @@ select[multiple].input-group-sm>.input-group-btn>.btn {
 
 .navbar-brand {
     float: left;
-    padding: 10px 15px;
+    padding: 0px 20px;
     font-size: 18px;
     line-height: 20px;
     height: 40px
@@ -5454,7 +5454,7 @@ a.list-group-item.active>.badge,
 .jumbotron p {
     margin-bottom: 15px;
     font-size: 21px;
-    font-weight: 200
+    font-weight: 300
 }
 
 .container .jumbotron {

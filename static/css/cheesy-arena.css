@@ -31,12 +31,16 @@
 }
 .well-darkred {
   background-color: #f6eaea;
+  border-top-left-radius: 0px;
+  border-bottom-left-radius: 0px;
 }
 .well-blue {
   background-color: #d9edf7;
 }
 .well-darkblue {
   background-color: #d9edf7;
+  border-top-right-radius: 0px;
+  border-bottom-right-radius: 0px;
 }
 .col-no-padding {
   padding-left: 0;
@@ -117,6 +121,7 @@ input[data-changed="true"], select[data-changed="true"] {
 }
 .status-well {
   margin-bottom: 10px;
+  border-width: 0px;
 }
 #buttonBottomRow {
   margin-top: 5px;
