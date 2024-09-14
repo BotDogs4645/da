@@ -4,6 +4,14 @@
 */
 
 /* Bootstrap overrides. */
+
+@font-face {
+  font-family: 'FuturaLTBold';
+  font-style: normal;
+  font-weight: normal;
+  src: url('/static/css/fonts/futura-lt-bold.woff2') format('woff2');
+  }
+
 .form-control[disabled] {
   cursor: default;
 }

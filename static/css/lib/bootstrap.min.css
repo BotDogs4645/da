@@ -2124,12 +2124,13 @@ legend {
     display: block;
     width: 100%;
     padding: 0;
+    padding-bottom: 7px;
     margin-bottom: 20px;
     font-size: 21px;
     line-height: inherit;
     color: #808080;
     border: 0;
-    border-bottom: 1px solid #e5e5e5
+    border-bottom: 1px solid #e5e5e5;
 }
 
 label {
