@@ -6,11 +6,42 @@ Root page and entry point to Cheesy Arena.
 */}}
 {{define "title"}}Home{{end}}
 {{define "body"}}
-<div class="jumbotron">
-  <img src="/static/img/da-logo.webp">
-  <p>Da <a href="/match_play">Match Play</a></p>
-
-  pulls 12
+<div class="fs-1 balluhhh">
+j soyos pulls 12 
 </div>
+<style>
+
+  .balluhhh {
+    font-size: 80px;
+    color: #fff;
+    text-align: center;
+    position: relative;
+    animation: whatever 0.1s ease-in-out infinite alternate, stim 0.3s ease-in-out infinite;
+  }
+  
+  @keyframes whatever {
+    from {
+      text-shadow: 0 0 100px #fff, 0 0 20px #fff, 0 0 30px #e60073, 0 0 40px #e60073, 0 0 50px #e60073, 0 0 60px #e60073, 0 0 70px #e60073;
+    }
+    
+    to {
+      text-shadow: 0 0 200px #000000, 0 0 30px #ff4da6, 0 0 40px #054f52, 0 0 50px #4d7cff, 0 0 60px #647561, 0 0 70px #ff4da6, 0 0 80px #1a39ec;
+    }
+  }
+  
+  @keyframes stim {
+    0% {
+      transform: translateY(0) rotate(0deg);
+    }
+    50% {
+      transform: translateY(calc(100vh - 100px)) rotate(180deg);
+    }
+    100% {
+      transform: translateY(0) rotate(360deg);
+    }
+  }
+  
+  
+  </style>
 {{end}}
 {{define "script"}}{{end}}
