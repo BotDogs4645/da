@@ -13,10 +13,9 @@ import (
 func TestSetupSponsorSlides(t *testing.T) {
 	web := setupTestWeb(t)
 
-	web.arena.Database.CreateSponsorSlide(&model.SponsorSlide{0, "Subtitle", "Sponsor Line 1", "Sponsor Line 2", "", 10,
-		0})
-	web.arena.Database.CreateSponsorSlide(&model.SponsorSlide{0, "Subtitle", "", "", "Image.gif", 10,
-		1})
+	web.arena.Database.CreateSponsorSlide(&model.SponsorSlide{Subtitle: "Subtitle", Line1: "Sponsor Line 1", Line2: "Sponsor Line 2", DisplayTimeSec: 10})
+	web.arena.Database.CreateSponsorSlide(&model.SponsorSlide{Subtitle: "Subtitle", Image: "Image.gif", DisplayTimeSec: 10,
+		DisplayOrder: 1})
 
 	recorder := web.getHttpResponse("/setup/sponsor_slides")
 	assert.Equal(t, 200, recorder.Code)

@@ -7,14 +7,14 @@ package bracket
 
 import "fmt"
 
-// Creates an unpopulated single-elimination bracket containing only the required matchups for the given number of
+// NewSingleEliminationBracket Creates an unpopulated single-elimination bracket containing only the required matchups for the given number of
 // alliances.
 func NewSingleEliminationBracket(numAlliances int) (*Bracket, error) {
 	if numAlliances < 2 {
-		return nil, fmt.Errorf("Must have at least 2 alliances")
+		return nil, fmt.Errorf("must have at least 2 alliances")
 	}
 	if numAlliances > 16 {
-		return nil, fmt.Errorf("Must have at most 16 alliances")
+		return nil, fmt.Errorf("must have at most 16 alliances")
 	}
 	return newBracket(singleEliminationBracketMatchupTemplates, newMatchupKey(4, 1), numAlliances)
 }

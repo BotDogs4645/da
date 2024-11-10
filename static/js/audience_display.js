@@ -362,10 +362,8 @@ var transitionIntroToMatch = function(callback) {
   const flexContainer = document.querySelector(".flex-container");
   flexContainer.classList.toggle("expanded");
 
-  // Optionally, use a timeout or transitionend event listener to control callback timing
   flexContainer.addEventListener('transitionend', function handleTransitionEnd() {
     callback();
-    // Remove the listener after it runs to avoid multiple calls
     flexContainer.removeEventListener('transitionend', handleTransitionEnd);
   });
 };
@@ -442,14 +440,24 @@ var transitionLogoLumaToScore = function(callback) {
 };
 
 var transitionMatchToBlank = function(callback) {
-  // Reverse the visibility and opacity transitions
-  console.log('da');
-  // Transition for #overlayCentering and ensure bottom is reset to -210px
+
+  $(".score-number").addClass("hidden");
+  $("#matchTime").addClass("hidden");
+  $('#matchName').removeClass("font-light").addClass("text-5xl font-semibold leading-6 my-auto");
+  const flexContainer = document.querySelector(".flex-container");
+  flexContainer.classList.toggle("expanded");
+
+
   $("#overlayCentering").transition({ queue: false, bottom: -210 }, 500, "ease", function() {
     console.log("tansition completed resetting bottom to -210px");
     $("#overlayCentering").css("bottom", "-210px");
-    callback();
   });
+
+  flexContainer.addEventListener('transitionend', function handleTransitionEnd() {
+    callback();
+    flexContainer.removeEventListener('transitionend', handleTransitionEnd);
+  });
+
 };
 
 var transitionMatchToIntro = function(callback) {

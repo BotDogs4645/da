@@ -82,10 +82,10 @@ type DisplayConfiguration struct {
 	Configuration map[string]string
 }
 
-// Parses the given display URL path and query string to extract the configuration.
+// DisplayFromUrl Parses the given display URL path and query string to extract the configuration.
 func DisplayFromUrl(path string, query map[string][]string) (*DisplayConfiguration, error) {
 	if _, ok := query["displayId"]; !ok {
-		return nil, fmt.Errorf("Display ID not present in request.")
+		return nil, fmt.Errorf("display ID not present in request")
 	}
 
 	var displayConfig DisplayConfiguration
@@ -103,7 +103,7 @@ func DisplayFromUrl(path string, query map[string][]string) (*DisplayConfigurati
 		}
 	}
 	if displayConfig.Type == InvalidDisplay {
-		return nil, fmt.Errorf("Could not determine display type from path %s.", path)
+		return nil, fmt.Errorf("could not determine display type from path %s", path)
 	}
 
 	// Put any remaining query parameters into the per-type configuration map.
@@ -117,7 +117,7 @@ func DisplayFromUrl(path string, query map[string][]string) (*DisplayConfigurati
 	return &displayConfig, nil
 }
 
-// Returns the URL string for the given display that includes all of its configuration parameters.
+// ToUrl Returns the URL string for the given display that includes all of its configuration parameters.
 func (display *Display) ToUrl() string {
 	var builder strings.Builder
 	builder.WriteString(displayTypePaths[display.DisplayConfiguration.Type])
@@ -147,7 +147,7 @@ func (display *Display) generateDisplayConfigurationMessage() interface{} {
 	return display.ToUrl()
 }
 
-// Returns an unused ID that can be used for a new display.
+// NextDisplayId Returns an unused ID that can be used for a new display.
 func (arena *Arena) NextDisplayId() string {
 	displayRegistryMutex.Lock()
 	defer displayRegistryMutex.Unlock()
@@ -163,7 +163,7 @@ func (arena *Arena) NextDisplayId() string {
 	}
 }
 
-// Creates or gets the given display in the arena registry and triggers a notification.
+// RegisterDisplay Creates or gets the given display in the arena registry and triggers a notification.
 func (arena *Arena) RegisterDisplay(displayConfig *DisplayConfiguration, ipAddress string) *Display {
 	displayRegistryMutex.Lock()
 	defer displayRegistryMutex.Unlock()
@@ -192,14 +192,14 @@ func (arena *Arena) RegisterDisplay(displayConfig *DisplayConfiguration, ipAddre
 	return display
 }
 
-// Updates the given display in the arena registry. Triggers a notification if the display configuration changed.
+// UpdateDisplay Updates the given display in the arena registry. Triggers a notification if the display configuration changed.
 func (arena *Arena) UpdateDisplay(displayConfig DisplayConfiguration) error {
 	displayRegistryMutex.Lock()
 	defer displayRegistryMutex.Unlock()
 
 	display, ok := arena.Displays[displayConfig.Id]
 	if !ok {
-		return fmt.Errorf("Display %s doesn't exist.", displayConfig.Id)
+		return fmt.Errorf("display %s doesn't exist", displayConfig.Id)
 	}
 	if !reflect.DeepEqual(displayConfig, display.DisplayConfiguration) {
 		display.DisplayConfiguration = displayConfig
@@ -209,7 +209,7 @@ func (arena *Arena) UpdateDisplay(displayConfig DisplayConfiguration) error {
 	return nil
 }
 
-// Marks the given display as having disconnected in the arena registry and triggers a notification.
+// MarkDisplayDisconnected Marks the given display as having disconnected in the arena registry and triggers a notification.
 func (arena *Arena) MarkDisplayDisconnected(displayId string) {
 	displayRegistryMutex.Lock()
 	defer displayRegistryMutex.Unlock()

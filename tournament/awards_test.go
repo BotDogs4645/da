@@ -14,7 +14,7 @@ func TestCreateOrUpdateAwardWithIntro(t *testing.T) {
 	database := setupTestDb(t)
 	database.CreateTeam(&model.Team{Id: 254, Nickname: "Teh Chezy Pofs"})
 
-	award := model.Award{0, model.JudgedAward, "Safety Award", 0, ""}
+	award := model.Award{Type: model.JudgedAward, AwardName: "Safety Award"}
 	err := CreateOrUpdateAward(database, &award, true)
 	assert.Nil(t, err)
 	award2, _ := database.GetAwardById(award.Id)

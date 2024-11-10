@@ -5,7 +5,6 @@ package tournament
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"testing"
@@ -54,8 +53,6 @@ func TestMalformedSchedule(t *testing.T) {
 }
 
 func TestScheduleTeams(t *testing.T) {
-	rand.Seed(0)
-
 	numTeams := 18
 	teams := make([]model.Team, numTeams)
 	for i := 0; i < numTeams; i++ {
@@ -99,8 +96,6 @@ func TestScheduleTiming(t *testing.T) {
 }
 
 func TestScheduleSurrogates(t *testing.T) {
-	rand.Seed(0)
-
 	numTeams := 38
 	teams := make([]model.Team, numTeams)
 	for i := 0; i < numTeams; i++ {

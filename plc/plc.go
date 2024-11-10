@@ -161,12 +161,19 @@ func (plc *Plc) Run() {
 	}
 }
 
+// strings.Title hack
+func capitalize(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + strings.ToLower(s[1:])
+}
+
 // GetArmorBlockStatuses Returns a map of ArmorBlocks I/O module names to whether they are connected properly.
 func (plc *Plc) GetArmorBlockStatuses() map[string]bool {
 	statuses := make(map[string]bool, armorBlockCount)
 	for i := 0; i < int(armorBlockCount); i++ {
-		//TODO: what the freak is going on here
-		statuses[strings.Title(armorBlock(i).String())] = plc.registers[fieldIoConnection]&(1<<i) > 0
+		statuses[capitalize(armorBlock(i).String())] = plc.registers[fieldIoConnection]&(1<<i) > 0
 	}
 	return statuses
 }

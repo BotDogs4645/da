@@ -184,12 +184,12 @@ func (arena *Arena) CreatePlayoffBracket() error {
 	case "double":
 		arena.PlayoffBracket, err = bracket.NewDoubleEliminationBracket(arena.EventSettings.NumElimAlliances)
 	default:
-		err = fmt.Errorf("Invalid playoff type: %v", arena.EventSettings.ElimType)
+		err = fmt.Errorf("invalid playoff type: %v", arena.EventSettings.ElimType)
 	}
 	return err
 }
 
-// Traverses the in-memory playoff bracket to populate alliances, create matches, and assess winners. Does nothing if
+// UpdatePlayoffBracket Traverses the in-memory playoff bracket to populate alliances, create matches, and assess winners. Does nothing if
 // the bracket has not been created.are
 func (arena *Arena) UpdatePlayoffBracket(startTime *time.Time) error {
 	alliances, err := arena.Database.GetAllAlliances()
@@ -202,7 +202,7 @@ func (arena *Arena) UpdatePlayoffBracket(startTime *time.Time) error {
 	return nil
 }
 
-// Sets up the arena for the given match.
+// LoadMatch Sets up the arena for the given match.
 func (arena *Arena) LoadMatch(match *model.Match) error {
 	if arena.MatchState != PreMatch {
 		return fmt.Errorf("cannot load match while there is a match still in progress or with results pending")
@@ -255,12 +255,12 @@ func (arena *Arena) LoadMatch(match *model.Match) error {
 	return nil
 }
 
-// Sets a new test match containing no teams as the current match.
+// LoadTestMatch Sets a new test match containing no teams as the current match.
 func (arena *Arena) LoadTestMatch() error {
 	return arena.LoadMatch(&model.Match{Type: "test", DisplayName: "Test Match"})
 }
 
-// Loads the first unplayed match of the current match type.
+// LoadNextMatch Loads the first unplayed match of the current match type.
 func (arena *Arena) LoadNextMatch() error {
 	nextMatch, err := arena.getNextMatch(false)
 	if err != nil {
@@ -272,7 +272,7 @@ func (arena *Arena) LoadNextMatch() error {
 	return arena.LoadMatch(nextMatch)
 }
 
-// Assigns the given team to the given station, also substituting it into the match record.
+// SubstituteTeam Assigns the given team to the given station, also substituting it into the match record.
 func (arena *Arena) SubstituteTeam(teamId int, station string) error {
 	if !arena.CurrentMatch.ShouldAllowSubstitution() {
 		return fmt.Errorf("can't substitute teams for qualification matches")
@@ -306,11 +306,11 @@ func (arena *Arena) SubstituteTeam(teamId int, station string) error {
 	return nil
 }
 
-// Starts the match if all conditions are met.
+// StartMatch Starts the match if all conditions are met.
 func (arena *Arena) StartMatch() error {
 	err := arena.checkCanStartMatch()
 	if err == nil {
-		// Save the match start time and game-specifc data to the database for posterity.
+		// Save the match start time and game-specific data to the database for posterity.
 		arena.CurrentMatch.StartedAt = time.Now()
 		if arena.CurrentMatch.Type != "test" {
 			arena.Database.UpdateMatch(arena.CurrentMatch)
@@ -339,7 +339,7 @@ func (arena *Arena) StartMatch() error {
 	return err
 }
 
-// Kills the current match or timeout if it is underway.
+// AbortMatch Kills the current match or timeout if it is underway.
 func (arena *Arena) AbortMatch() error {
 	if arena.MatchState == PreMatch || arena.MatchState == PostMatch || arena.MatchState == PostTimeout {
 		return fmt.Errorf("cannot abort match when it is not in progress")
@@ -363,7 +363,7 @@ func (arena *Arena) AbortMatch() error {
 	return nil
 }
 
-// Clears out the match and resets the arena state unless there is a match underway.
+// ResetMatch Clears out the match and resets the arena state unless there is a match underway.
 func (arena *Arena) ResetMatch() error {
 	if arena.MatchState != PostMatch && arena.MatchState != PreMatch {
 		return fmt.Errorf("cannot reset match while it is in progress")
@@ -380,7 +380,7 @@ func (arena *Arena) ResetMatch() error {
 	return nil
 }
 
-// Starts a timeout of the given duration.
+// StartTimeout Starts a timeout of the given duration.
 func (arena *Arena) StartTimeout(durationSec int) error {
 	if arena.MatchState != PreMatch {
 		return fmt.Errorf("cannot start timeout while there is a match still in progress or with results pending")
@@ -399,7 +399,7 @@ func (arena *Arena) StartTimeout(durationSec int) error {
 	return nil
 }
 
-// Updates the audience display screen.
+// SetAudienceDisplayMode Updates the audience display screen.
 func (arena *Arena) SetAudienceDisplayMode(mode string) {
 	if arena.AudienceDisplayMode != mode {
 		arena.AudienceDisplayMode = mode
@@ -410,7 +410,7 @@ func (arena *Arena) SetAudienceDisplayMode(mode string) {
 	}
 }
 
-// Updates the alliance station display screen.
+// SetAllianceStationDisplayMode Updates the alliance station display screen.
 func (arena *Arena) SetAllianceStationDisplayMode(mode string) {
 	if arena.AllianceStationDisplayMode != mode {
 		arena.AllianceStationDisplayMode = mode
@@ -418,7 +418,7 @@ func (arena *Arena) SetAllianceStationDisplayMode(mode string) {
 	}
 }
 
-// Returns the fractional number of seconds since the start of the match.
+// MatchTimeSec Returns the fractional number of seconds since the start of the match.
 func (arena *Arena) MatchTimeSec() float64 {
 	if arena.MatchState == PreMatch || arena.MatchState == StartMatch || arena.MatchState == PostMatch {
 		return 0
@@ -427,7 +427,7 @@ func (arena *Arena) MatchTimeSec() float64 {
 	}
 }
 
-// Performs a single iteration of checking inputs and timers and setting outputs accordingly to control the
+// Update Performs a single iteration of checking inputs and timers and setting outputs accordingly to control the
 // flow of a match.
 func (arena *Arena) Update() {
 	// Decide what state the robots need to be in, depending on where we are in the match.
@@ -575,12 +575,12 @@ func (arena *Arena) Run() {
 	}
 }
 
-// Calculates the red alliance score summary for the given realtime snapshot.
+// RedScoreSummary Calculates the red alliance score summary for the given realtime snapshot.
 func (arena *Arena) RedScoreSummary() *game.ScoreSummary {
 	return arena.RedScore.Summarize()
 }
 
-// Calculates the blue alliance score summary for the given realtime snapshot.
+// BlueScoreSummary Calculates the blue alliance score summary for the given realtime snapshot.
 func (arena *Arena) BlueScoreSummary() *game.ScoreSummary {
 	return arena.BlueScore.Summarize()
 }
@@ -710,14 +710,14 @@ func (arena *Arena) checkCanStartMatch() error {
 
 	if arena.Plc.IsEnabled() {
 		if !arena.Plc.IsHealthy {
-			return fmt.Errorf("Cannot start match while PLC is not healthy.")
+			return fmt.Errorf("cannot start match while PLC is not healthy")
 		}
 		if arena.Plc.GetFieldEstop() {
-			return fmt.Errorf("Cannot start match while field emergency stop is active.")
+			return fmt.Errorf("cannot start match while field emergency stop is active")
 		}
 		for name, status := range arena.Plc.GetArmorBlockStatuses() {
 			if !status {
-				return fmt.Errorf("Cannot start match while PLC ArmorBlock '%s' is not connected.", name)
+				return fmt.Errorf("cannot start match while PLC ArmorBlock '%s' is not connected", name)
 			}
 		}
 	}
@@ -729,11 +729,11 @@ func (arena *Arena) checkAllianceStationsReady(stations ...string) error {
 	for _, station := range stations {
 		allianceStation := arena.AllianceStations[station]
 		if allianceStation.Estop {
-			return fmt.Errorf("Cannot start match while an emergency stop is active.")
+			return fmt.Errorf("cannot start match while an emergency stop is active")
 		}
 		if !allianceStation.Bypass {
 			if allianceStation.DsConn == nil || !allianceStation.DsConn.RobotLinked {
-				return fmt.Errorf("Cannot start match until all robots are connected or bypassed.")
+				return fmt.Errorf("cannot start match until all robots are connected or bypassed")
 			}
 		}
 	}

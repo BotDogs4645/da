@@ -4,7 +4,6 @@
 package tournament
 
 import (
-	"math/rand"
 	"testing"
 
 	"github.com/BotDogs4645/da/game"
@@ -13,7 +12,6 @@ import (
 )
 
 func TestCalculateRankings(t *testing.T) {
-	rand.Seed(1)
 	database := setupTestDb(t)
 
 	setupMatchResultsForRankings(database)

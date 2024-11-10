@@ -135,7 +135,7 @@ func (web *Web) matchPlayLoadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if match == nil {
-			handleWebErr(w, fmt.Errorf("Invalid match ID %d.", matchId))
+			handleWebErr(w, fmt.Errorf("invalid match ID %d", matchId))
 			return
 		}
 		err = web.arena.LoadMatch(match)
@@ -162,7 +162,7 @@ func (web *Web) matchPlayShowResultHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if match == nil {
-		handleWebErr(w, fmt.Errorf("Invalid match ID %d.", matchId))
+		handleWebErr(w, fmt.Errorf("invalid match ID %d", matchId))
 		return
 	}
 	matchResult, err := web.arena.Database.GetMatchResultForMatch(match.Id)
@@ -171,7 +171,7 @@ func (web *Web) matchPlayShowResultHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if matchResult == nil {
-		handleWebErr(w, fmt.Errorf("No result found for match ID %d.", matchId))
+		handleWebErr(w, fmt.Errorf("no result found for match ID %d", matchId))
 		return
 	}
 	if match.ShouldUpdateRankings() {
@@ -306,7 +306,7 @@ func (web *Web) matchPlayWebsocketHandler(w http.ResponseWriter, r *http.Request
 				"DisplayOrder": 1,
 				"AwardId":      -1,
 			}
-		
+
 			var lowerThird model.LowerThird
 			err := mapstructure.Decode(hardcoded, &lowerThird)
 			if err != nil {

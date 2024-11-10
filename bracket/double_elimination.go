@@ -10,7 +10,7 @@ import "fmt"
 // Creates an unpopulated double-elimination bracket. Only supports having exactly eight alliances.
 func NewDoubleEliminationBracket(numAlliances int) (*Bracket, error) {
 	if numAlliances != 8 {
-		return nil, fmt.Errorf("Must have exactly 8 alliances")
+		return nil, fmt.Errorf("must have exactly 8 alliances")
 	}
 	return newBracket(doubleEliminationBracketMatchupTemplates, newMatchupKey(6, 1), numAlliances)
 }

@@ -43,7 +43,7 @@ func NewTeamMatchLog(teamId int, match *model.Match) (*TeamMatchLog, error) {
 	return &matchLog, nil
 }
 
-// Adds a line to the log when a packet is received.
+// LogDsPacket Adds a line to the log when a packet is received.
 func (log *TeamMatchLog) LogDsPacket(matchTimeSec float64, packetType int, dsConn *DriverStationConnection) {
 	log.logger.Printf("%f,%d,%d,%s,%v,%v,%v,%v,%v,%v,%f,%d,%d", matchTimeSec, packetType, dsConn.TeamId,
 		dsConn.AllianceStation, dsConn.DsLinked, dsConn.RadioLinked, dsConn.RobotLinked, dsConn.Auto, dsConn.Enabled, dsConn.Estop,
@@ -51,5 +51,8 @@ func (log *TeamMatchLog) LogDsPacket(matchTimeSec float64, packetType int, dsCon
 }
 
 func (log *TeamMatchLog) Close() {
-	log.logFile.Close()
+	err := log.logFile.Close()
+	if err != nil {
+		return
+	}
 }

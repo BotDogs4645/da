@@ -5,13 +5,11 @@ package game
 
 import (
 	"github.com/stretchr/testify/assert"
-	"math/rand"
 	"sort"
 	"testing"
 )
 
 func TestAddScoreSummary(t *testing.T) {
-	rand.Seed(0)
 	redScore := TestScore1()
 	blueScore := TestScore2()
 	redSummary := redScore.Summarize()

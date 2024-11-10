@@ -32,7 +32,7 @@ func (web *Web) scheduleGetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if matchType != "practice" && matchType != "qualification" {
-		handleWebErr(w, fmt.Errorf("Invalid match type '%s'.", matchType))
+		handleWebErr(w, fmt.Errorf("invalid match type '%s'", matchType))
 		return
 	}
 

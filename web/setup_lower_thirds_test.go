@@ -16,9 +16,9 @@ import (
 func TestSetupLowerThirds(t *testing.T) {
 	web := setupTestWeb(t)
 
-	web.arena.Database.CreateLowerThird(&model.LowerThird{0, "Top Text 1", "Bottom Text 1", 0, 0})
-	web.arena.Database.CreateLowerThird(&model.LowerThird{0, "Top Text 2", "Bottom Text 2", 1, 0})
-	web.arena.Database.CreateLowerThird(&model.LowerThird{0, "Top Text 3", "Bottom Text 3", 2, 0})
+	web.arena.Database.CreateLowerThird(&model.LowerThird{TopText: "Top Text 1", BottomText: "Bottom Text 1"})
+	web.arena.Database.CreateLowerThird(&model.LowerThird{TopText: "Top Text 2", BottomText: "Bottom Text 2", DisplayOrder: 1})
+	web.arena.Database.CreateLowerThird(&model.LowerThird{TopText: "Top Text 3", BottomText: "Bottom Text 3", DisplayOrder: 2})
 
 	recorder := web.getHttpResponse("/setup/lower_thirds")
 	assert.Equal(t, 200, recorder.Code)
@@ -32,24 +32,24 @@ func TestSetupLowerThirds(t *testing.T) {
 	defer conn.Close()
 	ws := websocket.NewTestWebsocket(conn)
 
-	ws.Write("saveLowerThird", model.LowerThird{1, "Top Text 4", "Bottom Text 1", 0, 0})
+	ws.Write("saveLowerThird", model.LowerThird{Id: 1, TopText: "Top Text 4", BottomText: "Bottom Text 1"})
 	time.Sleep(time.Millisecond * 10) // Allow some time for the command to be processed.
 	lowerThird, _ := web.arena.Database.GetLowerThirdById(1)
 	assert.Equal(t, "Top Text 4", lowerThird.TopText)
 
-	ws.Write("deleteLowerThird", model.LowerThird{1, "Top Text 4", "Bottom Text 1", 0, 0})
+	ws.Write("deleteLowerThird", model.LowerThird{Id: 1, TopText: "Top Text 4", BottomText: "Bottom Text 1"})
 	time.Sleep(time.Millisecond * 10)
 	lowerThird, _ = web.arena.Database.GetLowerThirdById(1)
 	assert.Nil(t, lowerThird)
 
 	assert.Equal(t, "blank", web.arena.AudienceDisplayMode)
-	ws.Write("showLowerThird", model.LowerThird{2, "Top Text 5", "Bottom Text 1", 0, 0})
+	ws.Write("showLowerThird", model.LowerThird{Id: 2, TopText: "Top Text 5", BottomText: "Bottom Text 1"})
 	time.Sleep(time.Millisecond * 10)
 	lowerThird, _ = web.arena.Database.GetLowerThirdById(2)
 	assert.Equal(t, "Top Text 5", lowerThird.TopText)
 	assert.Equal(t, true, web.arena.ShowLowerThird)
 
-	ws.Write("hideLowerThird", model.LowerThird{2, "Top Text 6", "Bottom Text 1", 0, 0})
+	ws.Write("hideLowerThird", model.LowerThird{Id: 2, TopText: "Top Text 6", BottomText: "Bottom Text 1"})
 	time.Sleep(time.Millisecond * 10)
 	lowerThird, _ = web.arena.Database.GetLowerThirdById(2)
 	assert.Equal(t, "Top Text 6", lowerThird.TopText)

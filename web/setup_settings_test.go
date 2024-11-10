@@ -91,7 +91,8 @@ func TestSetupSettingsBackupRestoreDb(t *testing.T) {
 	// Back up the database.
 	recorder := web.getHttpResponse("/setup/db/save")
 	assert.Equal(t, 200, recorder.Code)
-	assert.Equal(t, "application/octet-stream", recorder.HeaderMap["Content-Type"][0])
+	response := recorder.Result()
+	assert.Equal(t, "application/octet-stream", response.Header.Get("Content-Type"))
 	backupBody := recorder.Body
 
 	// Wipe the database to reset the defaults.

@@ -88,7 +88,7 @@ func (ws *Websocket) ReadWithTimeout(timeout time.Duration) (string, interface{}
 	case result := <-readChan:
 		return result.messageType, result.message, result.err
 	case <-time.After(timeout):
-		return "", nil, fmt.Errorf("Websocket read timed out after waiting for %v", timeout)
+		return "", nil, fmt.Errorf("websocket read timed out after waiting for %v", timeout)
 	}
 }
 

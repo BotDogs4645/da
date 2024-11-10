@@ -37,7 +37,7 @@ func BuildRandomSchedule(teams []model.Team, scheduleBlocks []model.ScheduleBloc
 	file, err := os.Open(fmt.Sprintf("%s/%d_%d.csv", filepath.Join(model.BaseDir, schedulesDir), numTeams,
 		matchesPerTeam))
 	if err != nil {
-		return nil, fmt.Errorf("No schedule template exists for %d teams and %d matches", numTeams, matchesPerTeam)
+		return nil, fmt.Errorf("no schedule template exists for %d teams and %d matches", numTeams, matchesPerTeam)
 	}
 	defer file.Close()
 	reader := csv.NewReader(file)
@@ -46,7 +46,7 @@ func BuildRandomSchedule(teams []model.Team, scheduleBlocks []model.ScheduleBloc
 		return nil, err
 	}
 	if len(csvLines) != numMatches {
-		return nil, fmt.Errorf("Schedule file contains %d matches, expected %d", len(csvLines), numMatches)
+		return nil, fmt.Errorf("schedule file contains %d matches, expected %d", len(csvLines), numMatches)
 	}
 
 	// Convert string fields from schedule to integers.

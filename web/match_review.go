@@ -121,7 +121,7 @@ func (web *Web) matchReviewEditPostHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if matchResult.MatchId != match.Id {
-		handleWebErr(w, fmt.Errorf("Error: match ID %d from result does not match expected", matchResult.MatchId))
+		handleWebErr(w, fmt.Errorf("error: match ID %d from result does not match expected", matchResult.MatchId))
 		return
 	}
 
@@ -157,7 +157,7 @@ func (web *Web) getMatchResultFromRequest(r *http.Request) (*model.Match, *model
 		return nil, nil, false, err
 	}
 	if match == nil {
-		return nil, nil, false, fmt.Errorf("Error: No such match: %d", matchId)
+		return nil, nil, false, fmt.Errorf("error: No such match: %d", matchId)
 	}
 	matchResult, err := web.arena.Database.GetMatchResultForMatch(matchId)
 	if err != nil {

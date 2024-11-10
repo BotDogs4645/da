@@ -189,7 +189,7 @@ func (ap *AccessPoint) updateTeamWifiStatuses() error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("Error getting wifi info from AP: %v", err)
+		return fmt.Errorf("error getting wifi info from AP: %v", err)
 	} else {
 		if !ap.initialStatusesFetched {
 			ap.initialStatusesFetched = true
@@ -242,7 +242,7 @@ func generateAccessPointConfig(teams [6]*model.Team) (string, error) {
 				fmt.Sprintf("set wireless.@wifi-iface[%d].key='no-team-%d'", position, position))
 		} else {
 			if len(team.WpaKey) < 8 || len(team.WpaKey) > 63 {
-				return "", fmt.Errorf("Invalid WPA key '%s' configured for team %d.", team.WpaKey, team.Id)
+				return "", fmt.Errorf("invalid WPA key '%s' configured for team %d", team.WpaKey, team.Id)
 			}
 
 			*commands = append(*commands, fmt.Sprintf("set wireless.@wifi-iface[%d].disabled='0'", position),
@@ -264,7 +264,7 @@ func decodeWifiInfo(wifiInfo string, statuses []TeamWifiStatus) error {
 	// There should be at least six networks present -- one for each team on the 5GHz radio, plus one on the 2.4GHz
 	// radio if the admin network is enabled.
 	if len(ssids) < 6 || len(linkQualities) < 6 {
-		return fmt.Errorf("Could not parse wifi info; expected 6 team networks, got %d.", len(ssids))
+		return fmt.Errorf("could not parse wifi info; expected 6 team networks, got %d", len(ssids))
 	}
 
 	for i := range statuses {

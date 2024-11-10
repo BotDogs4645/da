@@ -172,7 +172,7 @@ func (web *Web) teamEditPostHandler(w http.ResponseWriter, r *http.Request) {
 	if web.arena.EventSettings.NetworkSecurityEnabled {
 		team.WpaKey = r.PostFormValue("wpaKey")
 		if len(team.WpaKey) < 8 || len(team.WpaKey) > 63 {
-			handleWebErr(w, fmt.Errorf("WPA key must be between 8 and 63 characters."))
+			handleWebErr(w, fmt.Errorf("WPA key must be between 8 and 63 characters"))
 			return
 		}
 	}

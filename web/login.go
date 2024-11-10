@@ -91,6 +91,6 @@ func (web *Web) checkAuthPassword(user, password string) error {
 	if user == adminUser && password == web.arena.EventSettings.AdminPassword {
 		return nil
 	} else {
-		return fmt.Errorf("Invalid login credentials.")
+		return fmt.Errorf("invalid login credentials")
 	}
 }

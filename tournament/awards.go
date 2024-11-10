@@ -11,17 +11,17 @@ import (
 	"github.com/BotDogs4645/da/model"
 )
 
-// Creates or updates the given award, depending on whether or not it already exists.
+// CreateOrUpdateAward Creates or updates the given award, depending on whether or not it already exists.
 func CreateOrUpdateAward(database *model.Database, award *model.Award, createIntroLowerThird bool) error {
 	// Validate the award data.
 	if award.AwardName == "" {
-		return fmt.Errorf("Award name cannot be blank.")
+		return fmt.Errorf("award name cannot be blank")
 	}
 	var team *model.Team
 	if award.TeamId > 0 {
 		team, _ = database.GetTeamById(award.TeamId)
 		if team == nil {
-			return fmt.Errorf("Team %d is not present at this event.", award.TeamId)
+			return fmt.Errorf("team %d is not present at this event", award.TeamId)
 		}
 	}
 
@@ -68,7 +68,7 @@ func CreateOrUpdateAward(database *model.Database, award *model.Award, createInt
 	return nil
 }
 
-// Deletes the given award and any associated lower thirds.
+// DeleteAward Deletes the given award and any associated lower thirds.
 func DeleteAward(database *model.Database, awardId int) error {
 	if err := database.DeleteAward(awardId); err != nil {
 		return err
@@ -88,7 +88,7 @@ func DeleteAward(database *model.Database, awardId int) error {
 	return nil
 }
 
-// Generates awards and lower thirds for the tournament winners and finalists.
+// CreateOrUpdateWinnerAndFinalistAwards Generates awards and lower thirds for the tournament winners and finalists.
 func CreateOrUpdateWinnerAndFinalistAwards(database *model.Database, winnerAllianceId, finalistAllianceId int) error {
 	var winnerAlliance, finalistAlliance *model.Alliance
 	var err error
@@ -99,10 +99,10 @@ func CreateOrUpdateWinnerAndFinalistAwards(database *model.Database, winnerAllia
 		return err
 	}
 	if winnerAlliance == nil || finalistAlliance == nil {
-		return fmt.Errorf("Winner and/or finalist alliances do not exist.")
+		return fmt.Errorf("winner and/or finalist alliances do not exist")
 	}
 	if len(winnerAlliance.TeamIds) == 0 || len(finalistAlliance.TeamIds) == 0 {
-		return fmt.Errorf("Winner and/or finalist alliances do not contain teams.")
+		return fmt.Errorf("winner and/or finalist alliances do not contain teams")
 	}
 
 	// Clear out any awards that may exist if the final match was scored more than once.

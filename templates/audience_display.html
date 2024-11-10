@@ -42,44 +42,14 @@ Display shown on the audience screen overlayed over the video.
           </div>
         </div>
       </div>
-      <!--        
+
         <div class="elim-alliance" id="leftElimAlliance"></div>
-        <div id="matchOverlay">
-          <div id="matchOverlayTop">
-            <div class="teams" id="leftTeams">
-              <div id="leftTeam1"></div>
-              <div id="leftTeam2"></div>
-              <div id="leftTeam3"></div>
-            </div>
-            <div class="score reversible-left">
-              <div class="score-number" id="leftScoreNumber"></div>
-            </div>
-            <div class="score score-right reversible-right">
-              <div class="score-number" id="rightScoreNumber"></div>
-              <div class="avatars">
-                <img class="avatar" id="rightTeam1Avatar" src="" />
-                <img class="avatar" id="rightTeam2Avatar" src="" />
-                <img class="avatar" id="rightTeam3Avatar" src="" />
-              </div>
-            </div>
-            <div class="teams" id="rightTeams">
-              <div id="rightTeam1"></div>
-              <div id="rightTeam2"></div>
-              <div id="rightTeam3"></div>
-            </div>
-          </div>
-          <div id="eventMatchInfo">
-            <span>{{.EventSettings.Name}}</span>
-            <div id="matchTime"></div>
-            <span id="matchName"></span>
-          </div>
-        </div>
         <div class="elim-alliance" id="rightElimAlliance"></div>
       </div>
       <div id="elimSeriesStatus">
         <span id="leftElimAllianceWins"></span>&nbsp;-&nbsp;<span id="rightElimAllianceWins"></span>
       </div>
-      -->
+
     </div>
 
     <div id="blindsContainer">
@@ -150,11 +120,6 @@ Display shown on the audience screen overlayed over the video.
     </div>
     <script id="allianceSelectionTemplate" type="text/x-handlebars-template">
       <table id="allianceSelectionTable">
-        <tr>
-          <td colspan="{{"{{numColumns}}"}}">
-            <img src="/static/img/alliance-selection-logo.png" alt="logo" />
-          </td>
-        </tr>
         {{"{{#each alliances}}"}}
           <tr>
             <td class="alliance-cell">{{"{{Index}}"}}</td>

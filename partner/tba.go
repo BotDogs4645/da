@@ -243,7 +243,7 @@ func (client *TbaClient) DownloadTeamAvatar(teamNumber, year int) error {
 		if item.Type == "avatar" {
 			base64String, ok := item.Details["base64Image"].(string)
 			if !ok {
-				return fmt.Errorf("Could not interpret avatar response from TBA: %v", item)
+				return fmt.Errorf("could not interpret avatar response from TBA: %v", item)
 			}
 			avatarBytes, err := base64.StdEncoding.DecodeString(base64String)
 			if err != nil {
@@ -257,10 +257,10 @@ func (client *TbaClient) DownloadTeamAvatar(teamNumber, year int) error {
 		}
 	}
 
-	return fmt.Errorf("No avatar found for team %d in year %d.", teamNumber, year)
+	return fmt.Errorf("no avatar found for team %d in year %d", teamNumber, year)
 }
 
-// Uploads the event team list to The Blue Alliance.
+// PublishTeams Uploads the event team list to The Blue Alliance.
 func (client *TbaClient) PublishTeams(database *model.Database) error {
 	teams, err := database.GetAllTeams()
 	if err != nil {
@@ -284,12 +284,12 @@ func (client *TbaClient) PublishTeams(database *model.Database) error {
 	if resp.StatusCode != 200 {
 		defer resp.Body.Close()
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("Got status code %d from TBA: %s", resp.StatusCode, body)
+		return fmt.Errorf("got status code %d from TBA: %s", resp.StatusCode, body)
 	}
 	return nil
 }
 
-// Uploads the qualification and elimination match schedule and results to The Blue Alliance.
+// PublishMatches Uploads the qualification and elimination match schedule and results to The Blue Alliance.
 func (client *TbaClient) PublishMatches(database *model.Database) error {
 	qualMatches, err := database.GetMatchesByType("qualification")
 	if err != nil {
