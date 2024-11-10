@@ -15,7 +15,7 @@ type validRecord struct {
 }
 
 type manualIdRecord struct {
-	Id         int `db:"id,manual""`
+	Id         int `db:"id,manual"`
 	StringData string
 }
 

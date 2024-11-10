@@ -23,9 +23,9 @@ func main() {
 		log.Fatalln("Error during startup: ", err)
 	}
 
-	// Start the web server in a separate goroutine.
-	web := web.NewWeb(arena)
-	go web.ServeWebInterface(httpPort)
+	// Start the webServer server in a separate goroutine.
+	webServer := web.NewWeb(arena)
+	go webServer.ServeWebInterface(httpPort)
 
 	// Run the arena state machine in the main thread.
 	arena.Run()

@@ -91,6 +91,7 @@ func (web *Web) matchesApiHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Generates a JSON dump of the sponsor slides for use by the audience display.
+// can not remove `r` due to statically typed array for routing
 func (web *Web) sponsorSlidesApiHandler(w http.ResponseWriter, r *http.Request) {
 	sponsors, err := web.arena.Database.GetAllSponsorSlides()
 	if err != nil {

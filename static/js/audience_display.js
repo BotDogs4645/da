@@ -244,11 +244,8 @@ var transitionBlankToBracket = function(callback) {
 };
 
 var transitionBlankToIntro = function(callback) {
-  $('#overlayLeft').removeClass('col-span-2').addClass('col-span-1');
-  $('#overlayRight').removeClass('col-span-2').addClass('col-span-1');
   $(".score-number").addClass("hidden");
   $("#matchTime").addClass("hidden");
-  $('#overlayMiddle').addClass("col-span-3");
   $('#matchName').removeClass("font-light").addClass("text-5xl font-semibold leading-6 my-auto");
   $("#overlayCentering").transition(overlayCenteringShowParams, 500, "ease", callback);
 };
@@ -358,30 +355,22 @@ var transitionIntroToBlank = function(callback) {
 
 
 var transitionIntroToMatch = function(callback) {
-  // $(".score-number").addClass("hidden");
-  // $("#matchTime").addClass("hidden");
-  // $('#overlayMiddle').addClass("col-span-3");
-  // $('#matchName').removeClass("font-light").addClass("text-5xl font-semibold leading-6 my-auto");
 
-  $('#overlayMiddle').removeClass("col-span-3");
-  $('#matchName').removeClass("text-5xl font-semibold leading-6 my-auto").addClass("font-light");
-  $("#matchTime").removeClass("hidden");
   $(".score-number").removeClass("hidden");
-  $('#overlayLeft').removeClass('col-span-1').addClass('col-span-2');
-  $('#overlayRight').removeClass('col-span-1').addClass('col-span-2');
-  callback();
-  // $(".avatars").transition({queue: false, opacity: 0}, 500, "ease", function() {
-  //   $(".avatars").hide();
-  // });
-  // $(".score-fields").css("display", "flex");
-  // $(".score-fields").transition({queue: false, width: scoreFieldsOut}, 500, "ease");
-  // $("#logo").transition({queue: false, top: logoUp}, 500, "ease");
-  // $(".score").transition({queue: false, width: scoreOut}, 500, "ease", function() {
-  //   $(".score-number").transition({queue: false, opacity: 1}, 750, "ease");
-  //   $("#matchTime").transition({queue: false, opacity: 1}, 750, "ease", callback);
-  //   $(".score-fields").transition({queue: false, opacity: 1}, 750, "ease");
-  // });
+  $("#matchTime").removeClass("hidden");
+  $('#matchName').addClass("font-light").removeClass("text-5xl font-semibold leading-6 my-auto");
+  const flexContainer = document.querySelector(".flex-container");
+  flexContainer.classList.toggle("expanded");
+
+  // Optionally, use a timeout or transitionend event listener to control callback timing
+  flexContainer.addEventListener('transitionend', function handleTransitionEnd() {
+    callback();
+    // Remove the listener after it runs to avoid multiple calls
+    flexContainer.removeEventListener('transitionend', handleTransitionEnd);
+  });
 };
+
+
 
 var transitionLogoToBlank = function(callback) {
   $(".blindsCenter.blank").transition({queue: false, rotateY: "360deg"}, 500, "ease");

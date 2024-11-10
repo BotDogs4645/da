@@ -76,13 +76,19 @@ func (web *Web) displaysWebsocketHandler(w http.ResponseWriter, r *http.Request)
 				continue
 			}
 			if err = web.arena.UpdateDisplay(displayConfig); err != nil {
-				ws.WriteError(err.Error())
+				err := ws.WriteError(err.Error())
+				if err != nil {
+					return
+				}
 				continue
 			}
 		case "reloadDisplay":
 			displayId, ok := data.(string)
 			if !ok {
-				ws.WriteError(fmt.Sprintf("Failed to parse '%s' message.", messageType))
+				err := ws.WriteError(fmt.Sprintf("Failed to parse '%s' message.", messageType))
+				if err != nil {
+					return
+				}
 				continue
 			}
 			web.arena.ReloadDisplaysNotifier.NotifyWithMessage(displayId)

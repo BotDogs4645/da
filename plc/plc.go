@@ -161,21 +161,22 @@ func (plc *Plc) Run() {
 	}
 }
 
-// Returns a map of ArmorBlocks I/O module names to whether they are connected properly.
+// GetArmorBlockStatuses Returns a map of ArmorBlocks I/O module names to whether they are connected properly.
 func (plc *Plc) GetArmorBlockStatuses() map[string]bool {
 	statuses := make(map[string]bool, armorBlockCount)
 	for i := 0; i < int(armorBlockCount); i++ {
+		//TODO: what the freak is going on here
 		statuses[strings.Title(armorBlock(i).String())] = plc.registers[fieldIoConnection]&(1<<i) > 0
 	}
 	return statuses
 }
 
-// Returns the state of the field emergency stop button (true if e-stop is active).
+// GetFieldEstop Returns the state of the field emergency stop button (true if e-stop is active).
 func (plc *Plc) GetFieldEstop() bool {
 	return plc.IsEnabled() && !plc.inputs[fieldEstop]
 }
 
-// Returns the state of the red and blue driver station emergency stop buttons (true if e-stop is active).
+// GetTeamEstops Returns the state of the red and blue driver station emergency stop buttons (true if e-stop is active).
 func (plc *Plc) GetTeamEstops() ([3]bool, [3]bool) {
 	var redEstops, blueEstops [3]bool
 	if plc.IsEnabled() {
@@ -280,10 +281,6 @@ func (plc *Plc) resetConnection() {
 }
 
 func (plc *Plc) readInputs() bool {
-	if len(plc.inputs) == 0 {
-		return true
-	}
-
 	inputs, err := plc.client.ReadDiscreteInputs(0, uint16(len(plc.inputs)))
 	if err != nil {
 		log.Printf("PLC error reading inputs: %v", err)
@@ -299,10 +296,6 @@ func (plc *Plc) readInputs() bool {
 }
 
 func (plc *Plc) readRegisters() bool {
-	if len(plc.registers) == 0 {
-		return true
-	}
-
 	registers, err := plc.client.ReadHoldingRegisters(0, uint16(len(plc.registers)))
 	if err != nil {
 		log.Printf("PLC error reading registers: %v", err)

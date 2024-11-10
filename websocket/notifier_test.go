@@ -5,7 +5,7 @@ package websocket
 
 import (
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
+	"io"
 	"log"
 	"testing"
 )
@@ -35,7 +35,7 @@ func TestNotifier(t *testing.T) {
 	assert.Equal(t, "test message", (<-listener).messageBody)
 
 	// Should stop sending messages and not block once the buffer is full.
-	log.SetOutput(ioutil.Discard) // Silence noisy log output.
+	log.SetOutput(io.Discard) // Silence noisy log output.
 	for i := 0; i < 20; i++ {
 		notifier.NotifyWithMessage(i)
 	}

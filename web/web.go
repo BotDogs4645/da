@@ -36,13 +36,13 @@ func NewWeb(arena *field.Arena) *Web {
 		// Allows sub-templates to be invoked with multiple arguments.
 		"dict": func(values ...interface{}) (map[string]interface{}, error) {
 			if len(values)%2 != 0 {
-				return nil, fmt.Errorf("Invalid dict call.")
+				return nil, fmt.Errorf("invalid dict call")
 			}
 			dict := make(map[string]interface{}, len(values)/2)
 			for i := 0; i < len(values); i += 2 {
 				key, ok := values[i].(string)
 				if !ok {
-					return nil, fmt.Errorf("Dict keys must be strings.")
+					return nil, fmt.Errorf("dict keys must be strings")
 				}
 				dict[key] = values[i+1]
 			}
@@ -69,19 +69,23 @@ func NewWeb(arena *field.Arena) *Web {
 	return web
 }
 
-// Starts the webserver and blocks, waiting on requests. Does not return until the application exits.
+// ServeWebInterface Starts the webserver and blocks, waiting on requests. Does not return until the application exits.
 func (web *Web) ServeWebInterface(port int) {
 	http.Handle("/static/", http.StripPrefix("/static/", addNoCacheHeader(http.FileServer(http.Dir("static/")))))
 	http.Handle("/", web.newHandler())
 	log.Printf("Serving HTTP requests on port %d", port)
 
 	// Start Server
-	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	if err != nil {
+		panic("its so jover")
+		return
+	}
 }
 
 // Serves the root page of Cheesy Arena.
 func (web *Web) indexHandler(w http.ResponseWriter, r *http.Request) {
-	template, err := web.parseFiles("templates/index.html", "templates/base.html")
+	indexTemplate, err := web.parseFiles("templates/index.html", "templates/base.html")
 	if err != nil {
 		handleWebErr(w, err)
 		return
@@ -89,7 +93,7 @@ func (web *Web) indexHandler(w http.ResponseWriter, r *http.Request) {
 	data := struct {
 		*model.EventSettings
 	}{web.arena.EventSettings}
-	err = template.ExecuteTemplate(w, "base", data)
+	err = indexTemplate.ExecuteTemplate(w, "base", data)
 	if err != nil {
 		handleWebErr(w, err)
 		return
@@ -212,6 +216,6 @@ func (web *Web) parseFiles(filenames ...string) (*template.Template, error) {
 		paths = append(paths, filepath.Join(model.BaseDir, filename))
 	}
 
-	template := template.New("").Funcs(web.templateHelpers)
-	return template.ParseFiles(paths...)
+	blankTemplate := template.New("").Funcs(web.templateHelpers)
+	return blankTemplate.ParseFiles(paths...)
 }

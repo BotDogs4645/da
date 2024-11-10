@@ -137,8 +137,8 @@ func (arena *Arena) generateMatchLoadMessage() interface{} {
 	}
 
 	var matchup *bracket.Matchup
-	redOffFieldTeams := []*model.Team{}
-	blueOffFieldTeams := []*model.Team{}
+	var redOffFieldTeams []*model.Team
+	var blueOffFieldTeams []*model.Team
 	if arena.CurrentMatch.Type == "elimination" {
 		matchup, _ = arena.PlayoffBracket.GetMatchup(arena.CurrentMatch.ElimRound, arena.CurrentMatch.ElimGroup)
 		redOffFieldTeamIds, blueOffFieldTeamIds, _ := arena.Database.GetOffFieldTeamIds(arena.CurrentMatch)

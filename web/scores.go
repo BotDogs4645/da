@@ -53,7 +53,7 @@ package web
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/BotDogs4645/da/field"
@@ -94,7 +94,7 @@ func (web *Web) setScoresHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var scores jsonScore
-	reqBody, err := ioutil.ReadAll(r.Body)
+	reqBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		handleWebErr(w, err)
 		return

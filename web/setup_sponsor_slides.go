@@ -127,9 +127,9 @@ func (web *Web) reorderSponsorSlide(id int, moveUp bool) error {
 		return nil
 	}
 	adjacentSponsorSlide := &sponsorSlides[sponsorSlideIndex]
-	if err != nil {
-		return err
-	}
+	//if err != nil {
+	//	return err
+	//}
 
 	// Swap their display orders and save.
 	sponsorSlide.DisplayOrder, adjacentSponsorSlide.DisplayOrder =

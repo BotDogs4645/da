@@ -98,7 +98,7 @@ func (table *table[R]) getById(id int) (*R, error) {
 
 // Returns a slice containing every record in the table, ordered by string representation of ID.
 func (table *table[R]) getAll() ([]R, error) {
-	records := []R{}
+	var records []R
 	err := table.bolt.View(func(tx *bbolt.Tx) error {
 		bucket, err := table.getBucket(tx)
 		if err != nil {

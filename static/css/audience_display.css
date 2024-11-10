@@ -13,6 +13,37 @@ html {
 @supports (font-variation-settings: normal) {
   :root { font-family: InterVariable, sans-serif; }
 }
+
+
+
+/* grids dont transition for some bs reason */
+
+.flex-container {
+  display: flex;
+  width: 100%;
+}
+
+.flex-left, .flex-right {
+  flex: 1 1 0;
+  transition: flex 0.5s ease;
+}
+
+.flex-middle {
+  /*dumb shit*/
+  flex: 15 1 0;
+  transition: flex 0.5s ease;
+}
+
+.flex-container.expanded .flex-left, .flex-container.expanded .flex-right {
+  flex: 3 1 0;
+}
+
+.flex-container.expanded .flex-middle {
+  flex: 2 1 0;
+}
+
+
+
 #overlayCentering {
   position: absolute;
   bottom: -210px;

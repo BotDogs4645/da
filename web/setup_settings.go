@@ -8,7 +8,6 @@ package web
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -24,7 +23,7 @@ func (web *Web) settingsGetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	web.renderSettings(w, r, "")
+	web.renderSettings(w, "")
 }
 
 // Saves the event settings.
@@ -49,7 +48,7 @@ func (web *Web) settingsPostHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		numAlliances, _ = strconv.Atoi(r.PostFormValue("numElimAlliances"))
 		if numAlliances < 2 || numAlliances > 16 {
-			web.renderSettings(w, r, "Number of alliances must be between 2 and 16.")
+			web.renderSettings(w, "Number of alliances must be between 2 and 16.")
 			return
 		}
 	}
@@ -84,7 +83,7 @@ func (web *Web) settingsPostHandler(w http.ResponseWriter, r *http.Request) {
 	eventSettings.WarningRemainingDurationSec, _ = strconv.Atoi(r.PostFormValue("warningRemainingDurationSec"))
 
 	if eventSettings.Ap2TeamChannel != 0 && eventSettings.Ap2TeamChannel == eventSettings.ApTeamChannel {
-		web.renderSettings(w, r, "Cannot use same channel for both access points.")
+		web.renderSettings(w, "Cannot use same channel for both access points.")
 		return
 	}
 
@@ -136,12 +135,12 @@ func (web *Web) restoreDbHandler(w http.ResponseWriter, r *http.Request) {
 
 	file, _, err := r.FormFile("databaseFile")
 	if err != nil {
-		web.renderSettings(w, r, "No database backup file was specified.")
+		web.renderSettings(w, "No database backup file was specified.")
 		return
 	}
 
 	// Write the file to a temporary location on disk and verify that it can be opened as a database.
-	tempFile, err := ioutil.TempFile(".", "uploaded-db-")
+	tempFile, err := os.CreateTemp(".", "uploaded-db-")
 	if err != nil {
 		handleWebErr(w, err)
 		return
@@ -157,7 +156,7 @@ func (web *Web) restoreDbHandler(w http.ResponseWriter, r *http.Request) {
 	tempFile.Close()
 	tempDb, err := model.OpenDatabase(tempFilePath)
 	if err != nil {
-		web.renderSettings(w, r, "Could not read uploaded database backup file. Please verify that it a valid "+
+		web.renderSettings(w, "Could not read uploaded database backup file. Please verify that it a valid "+
 			"database file.")
 		return
 	}
@@ -235,7 +234,7 @@ func (web *Web) clearDbHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/setup/settings", 303)
 }
 
-func (web *Web) renderSettings(w http.ResponseWriter, r *http.Request, errorMessage string) {
+func (web *Web) renderSettings(w http.ResponseWriter, errorMessage string) {
 	template, err := web.parseFiles("templates/setup_settings.html", "templates/base.html")
 	if err != nil {
 		handleWebErr(w, err)

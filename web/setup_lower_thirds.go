@@ -186,12 +186,12 @@ func (web *Web) reorderLowerThird(id int, moveUp bool) error {
 	}
 	if lowerThirdIndex < 0 || lowerThirdIndex == len(lowerThirds) {
 		// The one to move is already at the limit; return an error to prevent a page reload.
-		return fmt.Errorf("Already at the limit.")
+		return fmt.Errorf("already at the limit")
 	}
 	adjacentLowerThird := &lowerThirds[lowerThirdIndex]
-	if err != nil {
-		return err
-	}
+	//if err != nil {
+	//	return err
+	//}
 
 	// Swap their display orders and save.
 	lowerThird.DisplayOrder, adjacentLowerThird.DisplayOrder =

@@ -26,7 +26,7 @@ func (web *Web) teamsGetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	web.renderTeams(w, r, false)
+	web.renderTeams(w, false)
 }
 
 // Adds teams to the team list.
@@ -36,7 +36,7 @@ func (web *Web) teamsPostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !web.canModifyTeamList() {
-		web.renderTeams(w, r, true)
+		web.renderTeams(w, true)
 		return
 	}
 
@@ -97,7 +97,7 @@ func (web *Web) teamsClearHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !web.canModifyTeamList() {
-		web.renderTeams(w, r, true)
+		web.renderTeams(w, true)
 		return
 	}
 
@@ -192,7 +192,7 @@ func (web *Web) teamDeletePostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !web.canModifyTeamList() {
-		web.renderTeams(w, r, true)
+		web.renderTeams(w, true)
 		return
 	}
 
@@ -255,7 +255,7 @@ func (web *Web) teamsGenerateWpaKeysHandler(w http.ResponseWriter, r *http.Reque
 	http.Redirect(w, r, "/setup/teams", 303)
 }
 
-func (web *Web) renderTeams(w http.ResponseWriter, r *http.Request, showErrorMessage bool) {
+func (web *Web) renderTeams(w http.ResponseWriter, showErrorMessage bool) {
 	teams, err := web.arena.Database.GetAllTeams()
 	if err != nil {
 		handleWebErr(w, err)

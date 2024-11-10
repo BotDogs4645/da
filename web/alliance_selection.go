@@ -30,7 +30,7 @@ func (web *Web) allianceSelectionGetHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	web.renderAllianceSelection(w, r, "")
+	web.renderAllianceSelection(w, "")
 }
 
 // Updates the cache with the latest input from the client.
@@ -40,7 +40,7 @@ func (web *Web) allianceSelectionPostHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	if !web.canModifyAllianceSelection() {
-		web.renderAllianceSelection(w, r, "Alliance selection has already been finalized.")
+		web.renderAllianceSelection(w, "Alliance selection has already been finalized.")
 		return
 	}
 
@@ -59,15 +59,14 @@ func (web *Web) allianceSelectionPostHandler(w http.ResponseWriter, r *http.Requ
 			} else {
 				teamId, err := strconv.Atoi(teamString)
 				if err != nil {
-					web.renderAllianceSelection(w, r, fmt.Sprintf("Invalid team number value '%s'.", teamString))
+					web.renderAllianceSelection(w, fmt.Sprintf("Invalid team number value '%s'.", teamString))
 					return
 				}
 				found := false
 				for _, team := range newRankedTeams {
 					if team.TeamId == teamId {
 						if team.Picked {
-							web.renderAllianceSelection(w, r,
-								fmt.Sprintf("Team %d is already part of an alliance.", teamId))
+							web.renderAllianceSelection(w, fmt.Sprintf("Team %d is already part of an alliance.", teamId))
 							return
 						}
 						found = true
@@ -77,13 +76,9 @@ func (web *Web) allianceSelectionPostHandler(w http.ResponseWriter, r *http.Requ
 					}
 				}
 				if !found {
-					web.renderAllianceSelection(
-						w,
-						r,
-						fmt.Sprintf(
-							"Team %d has not played any matches at this event and is ineligible for selection.", teamId,
-						),
-					)
+					web.renderAllianceSelection(w, fmt.Sprintf(
+						"Team %d has not played any matches at this event and is ineligible for selection.", teamId,
+					))
 					return
 				}
 			}
@@ -102,11 +97,11 @@ func (web *Web) allianceSelectionStartHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	if len(web.arena.AllianceSelectionAlliances) != 0 {
-		web.renderAllianceSelection(w, r, "Can't start alliance selection when it is already in progress.")
+		web.renderAllianceSelection(w, "Can't start alliance selection when it is already in progress.")
 		return
 	}
 	if !web.canModifyAllianceSelection() {
-		web.renderAllianceSelection(w, r, "Alliance selection has already been finalized.")
+		web.renderAllianceSelection(w, "Alliance selection has already been finalized.")
 		return
 	}
 
@@ -143,7 +138,7 @@ func (web *Web) allianceSelectionResetHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	if !web.canResetAllianceSelection() {
-		web.renderAllianceSelection(w, r, "Cannot reset alliance selection; playoff matches have already started.")
+		web.renderAllianceSelection(w, "Cannot reset alliance selection; playoff matches have already started.")
 		return
 	}
 
@@ -185,14 +180,14 @@ func (web *Web) allianceSelectionFinalizeHandler(w http.ResponseWriter, r *http.
 	}
 
 	if !web.canModifyAllianceSelection() {
-		web.renderAllianceSelection(w, r, "Alliance selection has already been finalized.")
+		web.renderAllianceSelection(w, "Alliance selection has already been finalized.")
 		return
 	}
 
 	location, _ := time.LoadLocation("Local")
 	startTime, err := time.ParseInLocation("2006-01-02 03:04:05 PM", r.PostFormValue("startTime"), location)
 	if err != nil {
-		web.renderAllianceSelection(w, r, "Must specify a valid start time for the playoff rounds.")
+		web.renderAllianceSelection(w, "Must specify a valid start time for the playoff rounds.")
 		return
 	}
 
@@ -200,7 +195,7 @@ func (web *Web) allianceSelectionFinalizeHandler(w http.ResponseWriter, r *http.
 	for _, alliance := range web.arena.AllianceSelectionAlliances {
 		for _, allianceTeamId := range alliance.TeamIds {
 			if allianceTeamId <= 0 {
-				web.renderAllianceSelection(w, r, "Can't finalize alliance selection until all spots have been filled.")
+				web.renderAllianceSelection(w, "Can't finalize alliance selection until all spots have been filled.")
 				return
 			}
 		}
@@ -242,12 +237,12 @@ func (web *Web) allianceSelectionFinalizeHandler(w http.ResponseWriter, r *http.
 		// Publish alliances and schedule to The Blue Alliance.
 		err = web.arena.TbaClient.PublishAlliances(web.arena.Database)
 		if err != nil {
-			web.renderAllianceSelection(w, r, fmt.Sprintf("Failed to publish alliances: %s", err.Error()))
+			web.renderAllianceSelection(w, fmt.Sprintf("Failed to publish alliances: %s", err.Error()))
 			return
 		}
 		err = web.arena.TbaClient.PublishMatches(web.arena.Database)
 		if err != nil {
-			web.renderAllianceSelection(w, r, fmt.Sprintf("Failed to publish matches: %s", err.Error()))
+			web.renderAllianceSelection(w, fmt.Sprintf("Failed to publish matches: %s", err.Error()))
 			return
 		}
 	}
@@ -278,7 +273,7 @@ func (web *Web) allianceSelectionPublishHandler(w http.ResponseWriter, r *http.R
 	http.Redirect(w, r, "/alliance_selection", 303)
 }
 
-func (web *Web) renderAllianceSelection(w http.ResponseWriter, r *http.Request, errorMessage string) {
+func (web *Web) renderAllianceSelection(w http.ResponseWriter, errorMessage string) {
 	if len(web.arena.AllianceSelectionAlliances) == 0 {
 		// The application may have been restarted since the alliance selection was conducted; try reloading the
 		// alliances from the DB.

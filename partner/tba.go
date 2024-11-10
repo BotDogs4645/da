@@ -11,8 +11,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -147,7 +148,7 @@ func (client *TbaClient) GetTeam(teamNumber int) (*TbaTeam, error) {
 
 	// Get the response and handle errors
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +168,7 @@ func (client *TbaClient) GetRobotName(teamNumber int, year int) (string, error) 
 
 	// Get the response and handle errors
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
@@ -194,7 +195,7 @@ func (client *TbaClient) GetTeamAwards(teamNumber int) ([]*TbaAward, error) {
 
 	// Get the response and handle errors
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +228,7 @@ func (client *TbaClient) DownloadTeamAvatar(teamNumber, year int) error {
 
 	// Get the response and handle errors
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
@@ -251,7 +252,7 @@ func (client *TbaClient) DownloadTeamAvatar(teamNumber, year int) error {
 
 			// Store the avatar to disk as a PNG file.
 			avatarPath := fmt.Sprintf("%s/%d.png", AvatarsDir, teamNumber)
-			ioutil.WriteFile(avatarPath, avatarBytes, 0644)
+			os.WriteFile(avatarPath, avatarBytes, 0644)
 			return nil
 		}
 	}
@@ -282,7 +283,7 @@ func (client *TbaClient) PublishTeams(database *model.Database) error {
 	}
 	if resp.StatusCode != 200 {
 		defer resp.Body.Close()
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("Got status code %d from TBA: %s", resp.StatusCode, body)
 	}
 	return nil
@@ -357,8 +358,8 @@ func (client *TbaClient) PublishMatches(database *model.Database) error {
 	}
 	if resp.StatusCode != 200 {
 		defer resp.Body.Close()
-		body, _ := ioutil.ReadAll(resp.Body)
-		return fmt.Errorf("Got status code %d from TBA: %s", resp.StatusCode, body)
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("got status code %d from TBA: %s", resp.StatusCode, body)
 	}
 	return nil
 }
@@ -398,8 +399,8 @@ func (client *TbaClient) PublishRankings(database *model.Database) error {
 	}
 	if resp.StatusCode != 200 {
 		defer resp.Body.Close()
-		body, _ := ioutil.ReadAll(resp.Body)
-		return fmt.Errorf("Got status code %d from TBA: %s", resp.StatusCode, body)
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("got status code %d from TBA: %s", resp.StatusCode, body)
 	}
 	return nil
 }
@@ -429,8 +430,8 @@ func (client *TbaClient) PublishAlliances(database *model.Database) error {
 	}
 	if resp.StatusCode != 200 {
 		defer resp.Body.Close()
-		body, _ := ioutil.ReadAll(resp.Body)
-		return fmt.Errorf("Got status code %d from TBA: %s", resp.StatusCode, body)
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("got status code %d from TBA: %s", resp.StatusCode, body)
 	}
 	return nil
 }
@@ -443,8 +444,8 @@ func (client *TbaClient) DeletePublishedMatches() error {
 	}
 	if resp.StatusCode != 200 {
 		defer resp.Body.Close()
-		body, _ := ioutil.ReadAll(resp.Body)
-		return fmt.Errorf("Got status code %d from TBA: %s", resp.StatusCode, body)
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("got status code %d from TBA: %s", resp.StatusCode, body)
 	}
 	return nil
 }
@@ -458,7 +459,7 @@ func (client *TbaClient) getEventName(eventCode string) (string, error) {
 
 	// Get the response and handle errors
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
@@ -544,8 +545,8 @@ func (client *TbaClient) PublishAwards(database *model.Database) error {
 	}
 	if resp.StatusCode != 200 {
 		defer resp.Body.Close()
-		body, _ := ioutil.ReadAll(resp.Body)
-		return fmt.Errorf("Got status code %d from TBA: %s", resp.StatusCode, body)
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("got status code %d from TBA: %s", resp.StatusCode, body)
 	}
 	return nil
 }

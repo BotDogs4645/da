@@ -17,14 +17,14 @@ import (
 
 // Shows the login form.
 func (web *Web) loginHandler(w http.ResponseWriter, r *http.Request) {
-	web.renderLogin(w, r, "")
+	web.renderLogin(w, "")
 }
 
 // Processes the login request.
 func (web *Web) loginPostHandler(w http.ResponseWriter, r *http.Request) {
 	username := r.PostFormValue("username")
 	if err := web.checkAuthPassword(username, r.PostFormValue("password")); err != nil {
-		web.renderLogin(w, r, err.Error())
+		web.renderLogin(w, err.Error())
 		return
 	}
 
@@ -42,7 +42,7 @@ func (web *Web) loginPostHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, redirectUrl, 303)
 }
 
-func (web *Web) renderLogin(w http.ResponseWriter, r *http.Request, errorMessage string) {
+func (web *Web) renderLogin(w http.ResponseWriter, errorMessage string) {
 	template, err := web.parseFiles("templates/login.html", "templates/base.html")
 	if err != nil {
 		handleWebErr(w, err)

@@ -32,12 +32,12 @@ type Message struct {
 }
 
 var websocketUpgrader = websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 2014,
-CheckOrigin: func(r *http.Request) bool {
-	return true; //based asf
-},
+	CheckOrigin: func(r *http.Request) bool {
+		return true //based asf
+	},
 }
 
-// Upgrades the given HTTP request to a websocket connection.
+// NewWebsocket Upgrades the given HTTP request to a websocket connection.
 func NewWebsocket(w http.ResponseWriter, r *http.Request) (*Websocket, error) {
 	conn, err := websocketUpgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -113,12 +113,13 @@ func (ws *Websocket) WriteError(errorMessage string) error {
 	return ws.Write("error", errorMessage)
 }
 
-// Creates listeners for the given notifiers and loops forever to pass their output directly through to the websocket.
+// HandleNotifiers Creates listeners for the given notifiers and loops forever to pass their output directly through to the websocket.
 func (ws *Websocket) HandleNotifiers(notifiers ...*Notifier) {
 	// Use reflection to dynamically build a select/case structure for all the notifiers.
 	listeners := make([]reflect.SelectCase, len(notifiers))
 	for i, notifier := range notifiers {
 		listener := notifier.listen()
+		//TODO: mem leak
 		defer close(listener)
 		listeners[i] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(listener)}
 

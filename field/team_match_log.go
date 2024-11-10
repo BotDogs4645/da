@@ -36,11 +36,11 @@ func NewTeamMatchLog(teamId int, match *model.Match) (*TeamMatchLog, error) {
 		return nil, err
 	}
 
-	log := TeamMatchLog{log.New(logFile, "", 0), logFile}
-	log.logger.Println("matchTimeSec,packetType,teamId,allianceStation,dsLinked,radioLinked,robotLinked,auto,enabled," +
+	matchLog := TeamMatchLog{log.New(logFile, "", 0), logFile}
+	matchLog.logger.Println("matchTimeSec,packetType,teamId,allianceStation,dsLinked,radioLinked,robotLinked,auto,enabled," +
 		"emergencyStop,batteryVoltage,missedPacketCount,dsRobotTripTimeMs")
 
-	return &log, nil
+	return &matchLog, nil
 }
 
 // Adds a line to the log when a packet is received.
